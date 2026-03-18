@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Woolf - Turborepo Monorepo',
-  description: 'A modern monorepo with Next.js and Express API',
+  title: 'Woolf Project',
+  description: 'A master degree project built with Next.js and Express, demonstrating a full-stack monorepo architecture.',
 }
 
 export default function RootLayout({
