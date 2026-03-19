@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { users } from '../db/schema'
+import { requireAuth } from '../middleware/auth'
 
 const router: RouterType = Router()
 
@@ -72,6 +73,21 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     token,
     user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt },
   })
+})
+
+// GET /api/auth/me
+router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const [user] = await db
+    .select({ id: users.id, name: users.name, email: users.email, createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, req.user!.userId))
+
+  if (!user) {
+    res.status(404).json({ error: 'User not found' })
+    return
+  }
+
+  res.json({ user })
 })
 
 export default router
