@@ -1,6 +1,8 @@
 import 'dotenv/config'
 import express, { type Request, type Response } from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import { rateLimit } from 'express-rate-limit'
 import { db } from './db'
 import { users } from './db/schema'
 import authRouter from './routes/auth'
@@ -8,9 +10,29 @@ import authRouter from './routes/auth'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware
+// Security middleware
+app.use(helmet())
 app.use(cors())
 app.use(express.json())
+
+// Rate limiting — stricter on auth routes to slow brute-force attempts
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+})
+
+app.use(globalLimiter)
+app.use('/api/auth', authLimiter)
 
 // Auth routes
 app.use('/api/auth', authRouter)
