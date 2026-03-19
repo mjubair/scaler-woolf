@@ -3,6 +3,7 @@ import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import { db } from './db'
 import { users } from './db/schema'
+import authRouter from './routes/auth'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -10,6 +11,9 @@ const PORT = process.env.PORT || 3001
 // Middleware
 app.use(cors())
 app.use(express.json())
+
+// Auth routes
+app.use('/api/auth', authRouter)
 
 // Routes
 app.get('/', (_req: Request, res: Response) => {
