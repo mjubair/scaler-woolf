@@ -1,0 +1,73 @@
+# Woolf API - REST Client test file
+# Requires VS Code REST Client extension
+
+@baseUrl = http://localhost:3001
+@token = <paste_token_here>
+
+###
+# Health check
+GET {{baseUrl}}/health
+
+###
+# API hello
+GET {{baseUrl}}/api/hello
+
+###
+# Register a new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+# Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+# Get current user (replace token after login)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+###
+# Register - missing fields (expect 400)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+###
+# Register - short password (expect 400)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test",
+  "email": "test2@example.com",
+  "password": "short"
+}
+
+###
+# Login - wrong password (expect 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "wrongpassword"
+}
+
+###
+# Me - no token (expect 401)
+GET {{baseUrl}}/api/auth/me
