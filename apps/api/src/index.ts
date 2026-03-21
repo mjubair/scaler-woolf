@@ -9,10 +9,11 @@ import authRouter from './routes/auth'
 
 const app = express()
 const PORT = process.env.PORT || 3001
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:3000']
 
 // Security middleware
 app.use(helmet())
-app.use(cors())
+app.use(cors({ origin: allowedOrigins }))
 app.use(express.json())
 
 // Rate limiting — stricter on auth routes to slow brute-force attempts
