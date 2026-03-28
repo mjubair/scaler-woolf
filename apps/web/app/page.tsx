@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useAuth } from '@/context'
+import { Button } from '@/components/ui'
 
 interface ApiResponse {
   message: string
@@ -22,6 +25,7 @@ interface HealthResponse {
 }
 
 export default function Home() {
+  const { user, logout } = useAuth()
   const [apiData, setApiData] = useState<ApiResponse | null>(null)
   const [healthData, setHealthData] = useState<HealthResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,9 +51,36 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-3xl flex-col gap-8 py-16 px-16 bg-white dark:bg-black">
-        <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          Woolf Project
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            Woolf Project
+          </h1>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                {user.name}
+              </span>
+              <Button size="sm" variant="outline" onClick={logout}>
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="inline-flex h-7 items-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex h-7 items-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
+              >
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-medium text-black dark:text-zinc-50">

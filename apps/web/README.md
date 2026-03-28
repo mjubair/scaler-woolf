@@ -25,6 +25,8 @@ pnpm start
 ## Pages
 
 - `/` - Home page with API connection and database status
+- `/login` - User login
+- `/register` - User registration
 
 ## Environment
 
