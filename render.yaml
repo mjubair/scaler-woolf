@@ -2,7 +2,7 @@ services:
   - type: web
     name: woolf-api
     runtime: node
-    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter=api build
+    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter=api build && pnpm --filter=api db:migrate
     startCommand: node apps/api/dist/index.js
     envVars:
       - key: DATABASE_URL
