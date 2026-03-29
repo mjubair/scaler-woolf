@@ -32,11 +32,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchApiData = fetch('http://localhost:3001/api/hello')
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL
+
+    const fetchApiData = fetch(`${baseUrl}/api/hello`)
       .then((res) => res.json())
       .then((data) => setApiData(data))
 
-    const fetchHealthData = fetch('http://localhost:3001/health')
+    const fetchHealthData = fetch(`${baseUrl}/health`)
       .then((res) => res.json())
       .then((data) => setHealthData(data))
 
