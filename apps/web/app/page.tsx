@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context'
 import { Button } from '@/components/ui'
+import { api } from '@/lib/axios'
 
 interface ApiResponse {
   message: string
@@ -32,15 +33,11 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL
+    const fetchApiData = api.get<ApiResponse>('/api/hello')
+      .then((res) => setApiData(res.data))
 
-    const fetchApiData = fetch(`${baseUrl}/api/hello`)
-      .then((res) => res.json())
-      .then((data) => setApiData(data))
-
-    const fetchHealthData = fetch(`${baseUrl}/health`)
-      .then((res) => res.json())
-      .then((data) => setHealthData(data))
+    const fetchHealthData = api.get<HealthResponse>('/health')
+      .then((res) => setHealthData(res.data))
 
     Promise.all([fetchApiData, fetchHealthData])
       .then(() => setLoading(false))
