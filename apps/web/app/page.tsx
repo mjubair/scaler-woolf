@@ -1,138 +1,185 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@/context'
-import { Button } from '@/components/ui'
-import { api } from '@/lib/axios'
+import { Navbar } from '@/components/layout/navbar'
+import { Button, Card, CardContent } from '@/components/ui'
+import {
+  Stethoscope,
+  Calendar,
+  Video,
+  Shield,
+  Star,
+  FileText,
+  Heart,
+  CreditCard,
+  ArrowRight,
+} from 'lucide-react'
 
-interface ApiResponse {
-  message: string
-  data?: {
-    greeting: string
-    framework: string
-    typescript: boolean
-  }
-}
+const features = [
+  {
+    icon: <Stethoscope className="size-6" />,
+    title: 'Verified Doctors',
+    description: 'All doctors are verified and approved by our admin team before they can accept bookings.',
+  },
+  {
+    icon: <Calendar className="size-6" />,
+    title: 'Easy Booking',
+    description: 'Browse doctors, pick a time slot, and book your consultation in just a few clicks.',
+  },
+  {
+    icon: <Video className="size-6" />,
+    title: 'Google Meet Consultations',
+    description: 'Get a shareable Google Meet link and calendar invite automatically upon booking.',
+  },
+  {
+    icon: <CreditCard className="size-6" />,
+    title: 'Secure Payments',
+    description: 'Pay securely through Razorpay. Your payment is processed before the consultation.',
+  },
+  {
+    icon: <FileText className="size-6" />,
+    title: 'Digital Prescriptions',
+    description: 'Receive digital prescriptions from your doctor after your consultation.',
+  },
+  {
+    icon: <Heart className="size-6" />,
+    title: 'Medical History',
+    description: 'Maintain your medical history and share it with doctors during consultations.',
+  },
+  {
+    icon: <Star className="size-6" />,
+    title: 'Reviews & Ratings',
+    description: 'Rate and review doctors after your consultation to help other patients.',
+  },
+  {
+    icon: <Shield className="size-6" />,
+    title: 'Privacy First',
+    description: 'Your health data is secure and only shared with your consulting doctor.',
+  },
+]
 
-interface HealthResponse {
-  status: string
-  uptime: number
-  timestamp: string
-  database: {
-    status: string
-    error: string | null
-  }
-}
+const steps = [
+  { step: '1', title: 'Find a Doctor', description: 'Search by specialization, rating, or name' },
+  { step: '2', title: 'Book a Slot', description: 'Choose a date and available time slot' },
+  { step: '3', title: 'Make Payment', description: 'Pay the consultation fee securely via Razorpay' },
+  { step: '4', title: 'Consult Online', description: 'Join via Google Meet at the scheduled time' },
+]
 
 export default function Home() {
-  const { user, logout } = useAuth()
-  const [apiData, setApiData] = useState<ApiResponse | null>(null)
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchApiData = api.get<ApiResponse>('/api/hello')
-      .then((res) => setApiData(res.data))
-
-    const fetchHealthData = api.get<HealthResponse>('/health')
-      .then((res) => setHealthData(res.data))
-
-    Promise.all([fetchApiData, fetchHealthData])
-      .then(() => setLoading(false))
-      .catch((err) => {
-        setError(err.message)
-        setLoading(false)
-      })
-  }, [])
-
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col gap-8 py-16 px-16 bg-white dark:bg-black">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-            Woolf Project
-          </h1>
-          {user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                {user.name}
-              </span>
-              <Button size="sm" variant="outline" onClick={logout}>
-                Sign out
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 sm:py-32">
+          <div className="mx-auto max-w-2xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+              Your Health,{' '}
+              <span className="text-primary">One Click Away</span>
+            </h1>
+            <p className="mt-6 text-lg leading-8 text-muted-foreground">
+              Book online consultations with verified doctors. Get prescriptions,
+              manage your medical history, and consult via Google Meet — all from
+              the comfort of your home.
+            </p>
+            <div className="mt-10 flex items-center justify-center gap-4">
+              <Link href="/doctors">
+                <Button size="lg" className="gap-2">
+                  Find a Doctor
+                  <ArrowRight className="size-4" />
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="lg" variant="outline">
+                  Join as Doctor
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
+            <p className="mt-2 text-muted-foreground">Book a consultation in 4 simple steps</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {steps.map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="mx-auto mb-4 size-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                  {item.step}
+                </div>
+                <h3 className="font-semibold text-lg">{item.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight">Everything You Need</h2>
+            <p className="mt-2 text-muted-foreground">A complete healthcare consultation platform</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {features.map((feature) => (
+              <Card key={feature.title} className="hover:ring-2 hover:ring-primary/10 transition-all">
+                <CardContent className="pt-6">
+                  <div className="size-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="font-semibold mb-1">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-primary text-primary-foreground">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight">Ready to Get Started?</h2>
+          <p className="mt-4 text-lg opacity-90 max-w-xl mx-auto">
+            Join thousands of patients and doctors on DocBook. Book your first
+            consultation today.
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link href="/register">
+              <Button size="lg" variant="secondary" className="gap-2">
+                Create Account
+                <ArrowRight className="size-4" />
               </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="inline-flex h-7 items-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex h-7 items-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
-              >
-                Register
-              </Link>
-            </div>
-          )}
+            </Link>
+            <Link href="/doctors">
+              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+                Browse Doctors
+              </Button>
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-xl font-medium text-black dark:text-zinc-50">
-            API Connection Test
-          </h2>
-
-          {loading && (
-            <p className="text-zinc-600 dark:text-zinc-400">Loading API data...</p>
-          )}
-
-          {error && (
-            <p className="text-red-600 dark:text-red-400 font-medium">Error: {error}</p>
-          )}
-
-          {apiData && (
-            <div className="flex flex-col gap-2">
-              <p className="text-green-700 dark:text-green-400 font-medium">
-                ✅ Connected to API
-              </p>
-              <pre className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 text-sm overflow-x-auto font-mono text-zinc-800 dark:text-zinc-200">
-                {JSON.stringify(apiData, null, 2)}
-              </pre>
-            </div>
-          )}
+      {/* Footer */}
+      <footer className="border-t py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-semibold">
+            <Stethoscope className="size-5 text-primary" />
+            DocBook
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Online Doctor Consultation Booking Platform
+          </p>
         </div>
-
-        <div className="flex flex-col gap-4">
-          <h2 className="text-xl font-medium text-black dark:text-zinc-50">
-            Database Status
-          </h2>
-
-          {healthData && (
-            <div className="flex flex-col gap-2">
-              <p className={healthData.database.status === 'connected'
-                ? 'text-green-700 dark:text-green-400 font-medium'
-                : 'text-red-600 dark:text-red-400 font-medium'
-              }>
-                {healthData.database.status === 'connected'
-                  ? '✅ Database Connected'
-                  : '❌ Database Disconnected'}
-              </p>
-              {healthData.database.error && (
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  Error: {healthData.database.error}
-                </p>
-              )}
-              <pre className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 text-sm overflow-x-auto font-mono text-zinc-800 dark:text-zinc-200">
-                {JSON.stringify(healthData, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      </main>
+      </footer>
     </div>
   )
 }
