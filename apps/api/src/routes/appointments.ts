@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth'
-import { getDoctorByUserId } from '../services/doctor.service'
+import { getDoctorByUserId, getDoctorById } from '../services/doctor.service'
 import {
   createAppointment,
   getAppointmentById,
@@ -8,6 +8,8 @@ import {
   getDoctorAppointments,
   updateAppointmentStatus,
 } from '../services/appointment.service'
+import { deleteCalendarEvent } from '../services/calendar.service'
+import { sendCancellationEmail } from '../services/email.service'
 
 const router = Router()
 
@@ -164,6 +166,40 @@ router.patch('/:id/cancel', requireAuth, async (req: Request, res: Response): Pr
       cancelledBy,
       cancellationReason: reason,
     })
+
+    // Post-cancellation: delete calendar event + send emails (fire-and-forget)
+    try {
+      // Delete Google Calendar event if one exists
+      if (appointment.googleEventId) {
+        deleteCalendarEvent(appointment.doctorId, appointment.googleEventId).catch((err) =>
+          console.error('Failed to delete calendar event:', err),
+        )
+      }
+
+      // Send cancellation email to patient
+      sendCancellationEmail({
+        email: appointment.patientEmail,
+        name: appointment.patientName,
+        doctorName: appointment.doctorName,
+        date: appointment.appointmentDate,
+        time: appointment.startTime,
+        reason: reason || undefined,
+        cancelledBy,
+      }).catch((err) => console.error('Failed to send patient cancellation email:', err))
+
+      // Send cancellation email to doctor
+      sendCancellationEmail({
+        email: appointment.doctorEmail,
+        name: appointment.doctorName,
+        doctorName: appointment.doctorName,
+        date: appointment.appointmentDate,
+        time: appointment.startTime,
+        reason: reason || undefined,
+        cancelledBy,
+      }).catch((err) => console.error('Failed to send doctor cancellation email:', err))
+    } catch (err) {
+      console.error('Post-cancellation actions failed:', err)
+    }
 
     res.json({ appointment: updated })
   } catch (error) {

@@ -75,6 +75,7 @@ export async function getAppointmentById(appointmentId: number) {
       patientName: users.name,
       patientEmail: users.email,
       doctorName: sql<string>`doctor_user.name`,
+      doctorEmail: sql<string>`doctor_user.email`,
       doctorSpecialization: doctors.specialization,
     })
     .from(appointments)

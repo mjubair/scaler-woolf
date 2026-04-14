@@ -1,15 +1,85 @@
 import { Router, type Request, type Response } from 'express'
 import crypto from 'crypto'
 import { requireAuth, requireRole } from '../middleware/auth'
-import { getAppointmentById, updateAppointmentStatus } from '../services/appointment.service'
+import { getAppointmentById, updateAppointmentStatus, setAppointmentMeetLink } from '../services/appointment.service'
 import {
   createRazorpayOrder,
   verifyPayment,
   getPaymentByAppointmentId,
 } from '../services/payment.service'
 import { getDoctorById } from '../services/doctor.service'
+import { createCalendarEvent } from '../services/calendar.service'
+import {
+  sendBookingConfirmation,
+  sendBookingNotificationToDoctor,
+  sendPaymentReceipt,
+} from '../services/email.service'
 
 const router = Router()
+
+// Shared helper: after payment is confirmed, create calendar event + send emails
+async function handlePostPaymentConfirmation(appointmentId: number, razorpayPaymentId?: string) {
+  try {
+    const appointment = await getAppointmentById(appointmentId)
+    if (!appointment) return
+
+    const doctor = await getDoctorById(appointment.doctorId)
+    if (!doctor) return
+
+    // Create Google Calendar event with Meet link
+    let meetLink: string | null = null
+    try {
+      const calendarResult = await createCalendarEvent({
+        doctorId: appointment.doctorId,
+        summary: `Consultation: ${appointment.patientName} with Dr. ${appointment.doctorName}`,
+        description: `Online consultation booked via DocBook.\nReason: ${appointment.reason || 'General consultation'}`,
+        startDateTime: `${appointment.appointmentDate}T${appointment.startTime}`,
+        endDateTime: `${appointment.appointmentDate}T${appointment.endTime}`,
+        patientEmail: appointment.patientEmail,
+        doctorEmail: appointment.doctorEmail,
+      })
+
+      if (calendarResult && !('error' in calendarResult) && calendarResult.meetLink && calendarResult.eventId) {
+        meetLink = calendarResult.meetLink
+        await setAppointmentMeetLink(appointmentId, calendarResult.meetLink, calendarResult.eventId)
+      }
+    } catch (err) {
+      console.error('Failed to create calendar event:', err)
+    }
+
+    // Send emails (fire-and-forget)
+    sendBookingConfirmation({
+      patientEmail: appointment.patientEmail,
+      patientName: appointment.patientName,
+      doctorName: appointment.doctorName,
+      date: appointment.appointmentDate,
+      time: appointment.startTime,
+      meetLink: meetLink || undefined,
+    }).catch((err) => console.error('Failed to send booking confirmation:', err))
+
+    sendBookingNotificationToDoctor({
+      doctorEmail: appointment.doctorEmail,
+      doctorName: appointment.doctorName,
+      patientName: appointment.patientName,
+      date: appointment.appointmentDate,
+      time: appointment.startTime,
+      reason: appointment.reason || undefined,
+    }).catch((err) => console.error('Failed to send doctor notification:', err))
+
+    if (razorpayPaymentId) {
+      sendPaymentReceipt({
+        patientEmail: appointment.patientEmail,
+        patientName: appointment.patientName,
+        doctorName: appointment.doctorName,
+        amount: String(doctor.consultationFee),
+        date: appointment.appointmentDate,
+        paymentId: razorpayPaymentId,
+      }).catch((err) => console.error('Failed to send payment receipt:', err))
+    }
+  } catch (err) {
+    console.error('Post-payment confirmation failed:', err)
+  }
+}
 
 // POST /api/payments/create-order — create Razorpay order for an appointment
 router.post(
@@ -91,9 +161,12 @@ router.post(
         return
       }
 
-      // Confirm the appointment
+      // Confirm the appointment and trigger post-payment flow
       if (result.payment) {
         await updateAppointmentStatus(result.payment.appointmentId, 'confirmed')
+
+        // Create calendar event + send emails (non-blocking)
+        handlePostPaymentConfirmation(result.payment.appointmentId, razorpay_payment_id)
       }
 
       res.json({
@@ -138,6 +211,9 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
       const result = await verifyPayment(orderId, paymentId, signature)
       if (result.valid && result.payment) {
         await updateAppointmentStatus(result.payment.appointmentId, 'confirmed')
+
+        // Create calendar event + send emails (non-blocking)
+        handlePostPaymentConfirmation(result.payment.appointmentId, paymentId)
       }
     }
 
