@@ -7,6 +7,7 @@ import { isAxiosError } from 'axios'
 import { useAuth } from '@/context'
 import { Button, Input, Label } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { Stethoscope } from 'lucide-react'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -21,8 +22,14 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, password)
-      router.push('/')
+      const user = await login(email, password)
+      if (user.role === 'admin') {
+        router.push('/dashboard/admin')
+      } else if (user.role === 'doctor') {
+        router.push('/dashboard/doctor')
+      } else {
+        router.push('/dashboard/patient')
+      }
     } catch (err) {
       setError(isAxiosError(err) ? (err.response?.data?.error ?? 'Login failed') : 'Login failed')
     } finally {
@@ -34,17 +41,17 @@ export default function LoginPage() {
     <div className="flex flex-1 flex-col md:grid md:grid-cols-2">
       {/* Left panel */}
       <div className="relative hidden flex-col bg-zinc-900 p-10 text-white dark:border-r md:flex">
-        <div className="flex items-center gap-2 text-lg font-semibold">
-          <span className="h-6 w-6 rounded-full bg-white/90" />
-          Woolf Project
-        </div>
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
+          <Stethoscope className="size-6" />
+          DocBook
+        </Link>
         <div className="mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg leading-relaxed">
-              &ldquo;This capstone project demonstrates a full-stack monorepo architecture
-              with Express, Next.js, and PostgreSQL.&rdquo;
+              &ldquo;Book online consultations with verified doctors.
+              Get prescriptions and manage your health — all in one place.&rdquo;
             </p>
-            <footer className="text-sm text-zinc-400">MSc Computer Science — Scaler Neovarsity</footer>
+            <footer className="text-sm text-zinc-400">DocBook — Online Consultation Platform</footer>
           </blockquote>
         </div>
       </div>
@@ -79,7 +86,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 autoComplete="current-password"
                 className="h-9"
                 value={password}
