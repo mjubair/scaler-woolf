@@ -1,0 +1,171 @@
+import { Router, type Request, type Response } from 'express'
+import crypto from 'crypto'
+import { requireAuth, requireRole } from '../middleware/auth'
+import { getAppointmentById, updateAppointmentStatus } from '../services/appointment.service'
+import {
+  createRazorpayOrder,
+  verifyPayment,
+  getPaymentByAppointmentId,
+} from '../services/payment.service'
+import { getDoctorById } from '../services/doctor.service'
+
+const router = Router()
+
+// POST /api/payments/create-order — create Razorpay order for an appointment
+router.post(
+  '/create-order',
+  requireAuth,
+  requireRole('patient'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { appointmentId } = req.body
+
+      if (!appointmentId) {
+        res.status(400).json({ error: 'appointmentId is required' })
+        return
+      }
+
+      const appointment = await getAppointmentById(appointmentId)
+      if (!appointment) {
+        res.status(404).json({ error: 'Appointment not found' })
+        return
+      }
+
+      if (appointment.patientId !== req.user!.userId) {
+        res.status(403).json({ error: 'You can only pay for your own appointments' })
+        return
+      }
+
+      if (appointment.status !== 'pending') {
+        res.status(400).json({ error: 'Appointment is not in pending status' })
+        return
+      }
+
+      // Check if already paid
+      const existingPayment = await getPaymentByAppointmentId(appointmentId)
+      if (existingPayment && existingPayment.status === 'paid') {
+        res.status(400).json({ error: 'Payment already completed for this appointment' })
+        return
+      }
+
+      // Get doctor's consultation fee
+      const doctor = await getDoctorById(appointment.doctorId)
+      if (!doctor) {
+        res.status(404).json({ error: 'Doctor not found' })
+        return
+      }
+
+      const amount = Number(doctor.consultationFee)
+      const { payment, order } = await createRazorpayOrder(appointmentId, req.user!.userId, amount)
+
+      res.json({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        paymentId: payment.id,
+        keyId: process.env.RAZORPAY_KEY_ID,
+      })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create payment order' })
+    }
+  },
+)
+
+// POST /api/payments/verify — verify Razorpay payment and confirm appointment
+router.post(
+  '/verify',
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        res.status(400).json({ error: 'Payment verification details are required' })
+        return
+      }
+
+      const result = await verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature)
+
+      if (!result.valid) {
+        res.status(400).json({ error: 'Payment verification failed' })
+        return
+      }
+
+      // Confirm the appointment
+      if (result.payment) {
+        await updateAppointmentStatus(result.payment.appointmentId, 'confirmed')
+      }
+
+      res.json({
+        message: 'Payment verified successfully',
+        payment: result.payment,
+      })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to verify payment' })
+    }
+  },
+)
+
+// POST /api/payments/webhook — Razorpay webhook handler
+router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      res.status(500).json({ error: 'Webhook secret not configured' })
+      return
+    }
+
+    const signature = req.headers['x-razorpay-signature'] as string
+    const body = JSON.stringify(req.body)
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(body)
+      .digest('hex')
+
+    if (signature !== expectedSignature) {
+      res.status(400).json({ error: 'Invalid webhook signature' })
+      return
+    }
+
+    const event = req.body.event
+    const payload = req.body.payload
+
+    if (event === 'payment.captured') {
+      const orderId = payload.payment.entity.order_id
+      const paymentId = payload.payment.entity.id
+
+      // Verify and update payment
+      const result = await verifyPayment(orderId, paymentId, signature)
+      if (result.valid && result.payment) {
+        await updateAppointmentStatus(result.payment.appointmentId, 'confirmed')
+      }
+    }
+
+    res.json({ status: 'ok' })
+  } catch (error) {
+    res.status(500).json({ error: 'Webhook processing failed' })
+  }
+})
+
+// GET /api/payments/appointment/:appointmentId — get payment status
+router.get(
+  '/appointment/:appointmentId',
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const appointmentId = Number(req.params.appointmentId)
+      const payment = await getPaymentByAppointmentId(appointmentId)
+
+      if (!payment) {
+        res.status(404).json({ error: 'Payment not found' })
+        return
+      }
+
+      res.json({ payment })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch payment' })
+    }
+  },
+)
+
+export default router
