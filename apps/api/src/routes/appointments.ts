@@ -253,7 +253,7 @@ router.patch('/:id/cancel', requireAuth, async (req: Request, res: Response): Pr
     // Delete Google Calendar event if one exists
     if (appointment.googleEventId) {
       try {
-        await deleteCalendarEvent(appointment.doctorId, appointment.googleEventId)
+        await deleteCalendarEvent(appointment.googleEventId)
       } catch (err) {
         console.error('Failed to delete calendar event:', err)
       }

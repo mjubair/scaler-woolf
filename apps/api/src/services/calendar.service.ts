@@ -1,7 +1,4 @@
 import { google } from 'googleapis'
-import { eq } from 'drizzle-orm'
-import { db } from '../db'
-import { doctors } from '../db/schema'
 
 function getOAuth2Client() {
   return new google.auth.OAuth2(
@@ -11,13 +8,13 @@ function getOAuth2Client() {
   )
 }
 
-export function getAuthUrl(doctorId: number) {
+export function getAuthUrl() {
   const oauth2Client = getOAuth2Client()
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
-    state: String(doctorId),
+    state: 'app',
   })
 }
 
@@ -27,11 +24,13 @@ export async function handleOAuthCallback(code: string) {
   return tokens
 }
 
-export async function saveDoctorRefreshToken(doctorId: number, refreshToken: string) {
-  await db
-    .update(doctors)
-    .set({ googleRefreshToken: refreshToken, updatedAt: new Date() })
-    .where(eq(doctors.id, doctorId))
+function getAppOAuth2Client() {
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+  if (!refreshToken) return null
+
+  const oauth2Client = getOAuth2Client()
+  oauth2Client.setCredentials({ refresh_token: refreshToken })
+  return oauth2Client
 }
 
 export async function createCalendarEvent(params: {
@@ -44,18 +43,11 @@ export async function createCalendarEvent(params: {
   doctorEmail: string
   timeZone?: string
 }) {
-  // Get doctor's refresh token
-  const [doctor] = await db
-    .select({ googleRefreshToken: doctors.googleRefreshToken })
-    .from(doctors)
-    .where(eq(doctors.id, params.doctorId))
-
-  if (!doctor?.googleRefreshToken) {
-    return { error: 'Doctor has not connected Google Calendar' }
+  const oauth2Client = getAppOAuth2Client()
+  if (!oauth2Client) {
+    console.log('[Calendar] No GOOGLE_REFRESH_TOKEN configured, skipping event creation')
+    return { error: 'Google Calendar not configured' }
   }
-
-  const oauth2Client = getOAuth2Client()
-  oauth2Client.setCredentials({ refresh_token: doctor.googleRefreshToken })
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 
@@ -96,16 +88,9 @@ export async function createCalendarEvent(params: {
   return { meetLink, eventId }
 }
 
-export async function deleteCalendarEvent(doctorId: number, eventId: string) {
-  const [doctor] = await db
-    .select({ googleRefreshToken: doctors.googleRefreshToken })
-    .from(doctors)
-    .where(eq(doctors.id, doctorId))
-
-  if (!doctor?.googleRefreshToken) return
-
-  const oauth2Client = getOAuth2Client()
-  oauth2Client.setCredentials({ refresh_token: doctor.googleRefreshToken })
+export async function deleteCalendarEvent(eventId: string) {
+  const oauth2Client = getAppOAuth2Client()
+  if (!oauth2Client) return
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 

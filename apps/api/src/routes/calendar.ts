@@ -1,23 +1,17 @@
 import { Router, type Request, type Response } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth'
-import { getDoctorByUserId } from '../services/doctor.service'
-import { getAuthUrl, handleOAuthCallback, saveDoctorRefreshToken } from '../services/calendar.service'
+import { getAuthUrl, handleOAuthCallback } from '../services/calendar.service'
 
 const router = Router()
 
-// GET /api/calendar/auth-url — get Google OAuth consent URL (doctor only)
+// GET /api/calendar/auth-url — get Google OAuth consent URL (admin only)
 router.get(
   '/auth-url',
   requireAuth,
-  requireRole('doctor'),
-  async (req: Request, res: Response): Promise<void> => {
+  requireRole('admin'),
+  async (_req: Request, res: Response): Promise<void> => {
     try {
-      const doctor = await getDoctorByUserId(req.user!.userId)
-      if (!doctor) {
-        res.status(404).json({ error: 'Doctor profile not found' })
-        return
-      }
-      const url = getAuthUrl(doctor.id)
+      const url = getAuthUrl()
       res.json({ url })
     } catch (error) {
       res.status(500).json({ error: 'Failed to generate auth URL' })
@@ -25,11 +19,10 @@ router.get(
   },
 )
 
-// GET /api/calendar/callback — OAuth callback, store refresh token
+// GET /api/calendar/callback — OAuth callback, log the refresh token
 router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const code = req.query.code as string
-    const state = req.query.state as string // doctorId passed through state
 
     if (!code) {
       res.status(400).json({ error: 'Authorization code is required' })
@@ -38,37 +31,28 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
 
     const tokens = await handleOAuthCallback(code)
 
-    if (tokens.refresh_token && state) {
-      const doctorId = Number(state)
-      await saveDoctorRefreshToken(doctorId, tokens.refresh_token)
+    if (tokens.refresh_token) {
+      // Log it so admin can add to .env
+      console.log('\n=== GOOGLE REFRESH TOKEN ===')
+      console.log('Add this to your .env file:')
+      console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`)
+      console.log('============================\n')
     }
 
-    // Redirect back to the frontend calendar settings page
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-    res.redirect(`${frontendUrl}/dashboard/doctor/calendar?connected=true`)
+    res.redirect(`${frontendUrl}?calendar_connected=true`)
   } catch (error) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-    res.redirect(`${frontendUrl}/dashboard/doctor/calendar?error=true`)
+    res.redirect(`${frontendUrl}?calendar_error=true`)
   }
 })
 
-// GET /api/calendar/status — check if doctor has connected Google Calendar
+// GET /api/calendar/status — check if app-level calendar is configured
 router.get(
   '/status',
   requireAuth,
-  requireRole('doctor'),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const doctor = await getDoctorByUserId(req.user!.userId)
-      if (!doctor) {
-        res.status(404).json({ error: 'Doctor profile not found' })
-        return
-      }
-
-      res.json({ connected: !!doctor.googleRefreshToken })
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to check calendar status' })
-    }
+  async (_req: Request, res: Response): Promise<void> => {
+    res.json({ connected: !!process.env.GOOGLE_REFRESH_TOKEN })
   },
 )
 
