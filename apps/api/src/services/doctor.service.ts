@@ -1,10 +1,11 @@
-import { eq, and, ilike, sql, gte, lte, desc, asc } from 'drizzle-orm'
+import { eq, and, or, ilike, sql, gte, lte, desc, asc } from 'drizzle-orm'
 import { db } from '../db'
 import { doctors, users, availabilitySlots, appointments } from '../db/schema'
 
 interface DoctorFilters {
   specialization?: string
   search?: string
+  gender?: string
   minRating?: number
   minFee?: number
   maxFee?: number
@@ -33,6 +34,9 @@ export async function listDoctors(filters: DoctorFilters) {
   }
   if (filters.maxFee) {
     conditions.push(lte(doctors.consultationFee, String(filters.maxFee)))
+  }
+  if (filters.gender) {
+    conditions.push(eq(users.gender, filters.gender))
   }
 
   let orderBy
@@ -67,6 +71,7 @@ export async function listDoctors(filters: DoctorFilters) {
       userName: users.name,
       userEmail: users.email,
       userAvatar: users.avatar,
+      userGender: users.gender,
     })
     .from(doctors)
     .innerJoin(users, eq(doctors.userId, users.id))
@@ -93,16 +98,29 @@ export async function listDoctors(filters: DoctorFilters) {
       })
       .from(doctors)
       .innerJoin(users, eq(doctors.userId, users.id))
-      .where(and(...conditions, ilike(users.name, `%${filters.search}%`)))
+      .where(and(
+        ...conditions,
+        or(
+          ilike(users.name, `%${filters.search}%`),
+          ilike(doctors.specialization, `%${filters.search}%`),
+          ilike(doctors.bio, `%${filters.search}%`),
+        ),
+      ))
       .orderBy(orderBy)
       .limit(limit)
       .offset(offset)
+
+    const searchCondition = or(
+      ilike(users.name, `%${filters.search}%`),
+      ilike(doctors.specialization, `%${filters.search}%`),
+      ilike(doctors.bio, `%${filters.search}%`),
+    )
 
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(doctors)
       .innerJoin(users, eq(doctors.userId, users.id))
-      .where(and(...conditions, ilike(users.name, `%${filters.search}%`)))
+      .where(and(...conditions, searchCondition))
 
     return {
       doctors: searchResults,

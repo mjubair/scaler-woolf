@@ -19,6 +19,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const result = await listDoctors({
       specialization: req.query.specialization as string,
       search: req.query.search as string,
+      gender: req.query.gender as string,
       minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
       minFee: req.query.minFee ? Number(req.query.minFee) : undefined,
       maxFee: req.query.maxFee ? Number(req.query.maxFee) : undefined,
