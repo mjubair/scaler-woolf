@@ -40,6 +40,7 @@ export const users = pgTable('users', {
   role: userRoleEnum('role').notNull().default('patient'),
   phone: varchar('phone', { length: 20 }),
   avatar: varchar('avatar', { length: 500 }),
+  gender: varchar('gender', { length: 10 }),
   isActive: boolean('is_active').notNull().default(true),
   isVerified: boolean('is_verified').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
