@@ -333,25 +333,36 @@ export default function BookingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {slots.length === 0 ? (
-                <p className="text-muted-foreground">No available slots for this date.</p>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {slots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                        selectedSlot?.id === slot.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      {slot.startTime.slice(0, 5)}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const now = new Date()
+                const isToday = selectedDate === today
+                const availableSlots = isToday
+                  ? slots.filter((slot) => {
+                      const [h, m] = slot.startTime.split(':').map(Number)
+                      return h > now.getHours() || (h === now.getHours() && m > now.getMinutes())
+                    })
+                  : slots
+
+                return availableSlots.length === 0 ? (
+                  <p className="text-muted-foreground">No available slots for this date.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          selectedSlot?.id === slot.id
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {slot.startTime.slice(0, 5)}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
         )}
