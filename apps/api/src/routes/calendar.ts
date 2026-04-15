@@ -12,7 +12,12 @@ router.get(
   requireRole('doctor'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const url = getAuthUrl()
+      const doctor = await getDoctorByUserId(req.user!.userId)
+      if (!doctor) {
+        res.status(404).json({ error: 'Doctor profile not found' })
+        return
+      }
+      const url = getAuthUrl(doctor.id)
       res.json({ url })
     } catch (error) {
       res.status(500).json({ error: 'Failed to generate auth URL' })

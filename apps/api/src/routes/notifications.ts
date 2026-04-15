@@ -21,6 +21,16 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
   }
 })
 
+// PATCH /api/notifications/read-all — mark all as read (must be before /:id to avoid matching)
+router.patch('/read-all', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    await markAllAsRead(req.user!.userId)
+    res.json({ message: 'All notifications marked as read' })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to mark notifications as read' })
+  }
+})
+
 // PATCH /api/notifications/:id/read — mark as read
 router.patch('/:id/read', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -33,16 +43,6 @@ router.patch('/:id/read', requireAuth, async (req: Request, res: Response): Prom
     res.json({ notification: updated })
   } catch (error) {
     res.status(500).json({ error: 'Failed to mark notification as read' })
-  }
-})
-
-// PATCH /api/notifications/read-all — mark all as read
-router.patch('/read-all', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await markAllAsRead(req.user!.userId)
-    res.json({ message: 'All notifications marked as read' })
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to mark notifications as read' })
   }
 })
 

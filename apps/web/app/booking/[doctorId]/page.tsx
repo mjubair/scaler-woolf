@@ -33,7 +33,7 @@ interface Slot {
 export default function BookingPage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const doctorId = params.doctorId as string
 
   const [doctor, setDoctor] = useState<Doctor | null>(null)
@@ -45,6 +45,14 @@ export default function BookingPage() {
   const [booking, setBooking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [meetLink, setMeetLink] = useState<string | null>(null)
+
+  // Auth guard — redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, authLoading, router])
 
   useEffect(() => {
     async function fetchDoctor() {
@@ -110,11 +118,14 @@ export default function BookingPage() {
         handler: async (response: any) => {
           try {
             // Step 4: Verify payment
-            await api.post('/api/payments/verify', {
+            const { data: verifyData } = await api.post('/api/payments/verify', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             })
+            if (verifyData.meetLink) {
+              setMeetLink(verifyData.meetLink)
+            }
             setSuccess(true)
           } catch {
             setError('Payment verification failed. Please contact support.')
@@ -168,8 +179,19 @@ export default function BookingPage() {
               <h2 className="text-xl font-semibold">Booking Confirmed!</h2>
               <p className="text-muted-foreground">
                 Your appointment with {doctor?.userName} has been confirmed.
-                You&apos;ll receive a Google Meet link via email.
               </p>
+              {meetLink ? (
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-sm font-medium mb-1">Google Meet Link</p>
+                  <a href={meetLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline break-all">
+                    {meetLink}
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  You&apos;ll receive a Google Meet link via email.
+                </p>
+              )}
               <div className="flex gap-3 justify-center">
                 <Link href="/dashboard/patient/appointments">
                   <Button>View Appointments</Button>

@@ -10,6 +10,7 @@ import {
 } from '../services/appointment.service'
 import { deleteCalendarEvent } from '../services/calendar.service'
 import { sendCancellationEmail } from '../services/email.service'
+import { createNotification } from '../services/notification.service'
 
 const router = Router()
 
@@ -206,6 +207,34 @@ router.patch('/:id/cancel', requireAuth, async (req: Request, res: Response): Pr
       })
     } catch (err) {
       console.error('Failed to send doctor cancellation email:', err)
+    }
+
+    // Create in-app notifications for cancellation
+    try {
+      await createNotification({
+        userId: appointment.patientId,
+        type: 'appointment_cancelled',
+        title: 'Appointment Cancelled',
+        message: `Your appointment with Dr. ${appointment.doctorName} on ${appointment.appointmentDate} has been cancelled.`,
+        metadata: { appointmentId, cancelledBy },
+      })
+    } catch (err) {
+      console.error('Failed to create patient cancellation notification:', err)
+    }
+
+    try {
+      const doctor = await getDoctorById(appointment.doctorId)
+      if (doctor) {
+        await createNotification({
+          userId: doctor.userId,
+          type: 'appointment_cancelled',
+          title: 'Appointment Cancelled',
+          message: `Appointment with ${appointment.patientName} on ${appointment.appointmentDate} has been cancelled by ${cancelledBy}.`,
+          metadata: { appointmentId, cancelledBy },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to create doctor cancellation notification:', err)
     }
 
     res.json({ appointment: updated })

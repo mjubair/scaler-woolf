@@ -14,6 +14,7 @@ import {
   sendBookingNotificationToDoctor,
   sendPaymentReceipt,
 } from '../services/email.service'
+import { createNotification } from '../services/notification.service'
 
 const router = Router()
 
@@ -90,6 +91,32 @@ async function handlePostPaymentConfirmation(appointmentId: number, razorpayPaym
     } catch (err) {
       console.error('Failed to send payment receipt:', err)
     }
+  }
+
+  // 5. Create in-app notifications for both patient and doctor
+  try {
+    await createNotification({
+      userId: appointment.patientId,
+      type: 'booking_confirmed',
+      title: 'Appointment Confirmed',
+      message: `Your appointment with Dr. ${appointment.doctorName} on ${appointment.appointmentDate} has been confirmed.`,
+      metadata: { appointmentId, meetLink },
+    })
+  } catch (err) {
+    console.error('Failed to create patient notification:', err)
+  }
+
+  try {
+    // Get doctor's userId from the doctor record
+    await createNotification({
+      userId: doctor.userId,
+      type: 'new_booking',
+      title: 'New Appointment',
+      message: `${appointment.patientName} has booked an appointment on ${appointment.appointmentDate}.`,
+      metadata: { appointmentId },
+    })
+  } catch (err) {
+    console.error('Failed to create doctor notification:', err)
   }
 
   return { meetLink }

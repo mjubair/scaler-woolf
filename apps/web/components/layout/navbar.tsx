@@ -38,7 +38,7 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/api/notifications">
+              <Link href={dashboardPath}>
                 <Button variant="ghost" size="icon-sm">
                   <Bell className="size-4" />
                 </Button>

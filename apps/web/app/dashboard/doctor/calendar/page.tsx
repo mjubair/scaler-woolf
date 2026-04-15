@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/axios'
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui'
 import { Calendar, Check, ExternalLink } from 'lucide-react'
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const searchParams = useSearchParams()
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -107,5 +107,19 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <div className="animate-spin h-8 w-8 rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <CalendarPageContent />
+    </Suspense>
   )
 }

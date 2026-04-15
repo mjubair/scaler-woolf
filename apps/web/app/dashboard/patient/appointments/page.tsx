@@ -3,13 +3,20 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/axios'
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui'
-import { Calendar, Video, X } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/components/ui'
+import { Calendar, Video, X, Star } from 'lucide-react'
 
 export default function PatientAppointments() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [filter, setFilter] = useState<string>('')
   const [loading, setLoading] = useState(true)
+
+  // Review form state
+  const [reviewingId, setReviewingId] = useState<number | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewMessage, setReviewMessage] = useState('')
 
   useEffect(() => {
     fetchAppointments()
@@ -34,6 +41,26 @@ export default function PatientAppointments() {
       await api.patch(`/api/appointments/${id}/cancel`, { reason: 'Cancelled by patient' })
       fetchAppointments()
     } catch {
+    }
+  }
+
+  async function submitReview(appointmentId: number) {
+    setReviewSubmitting(true)
+    setReviewMessage('')
+    try {
+      await api.post('/api/reviews', {
+        appointmentId,
+        rating: reviewRating,
+        comment: reviewComment || undefined,
+      })
+      setReviewMessage('Review submitted!')
+      setReviewingId(null)
+      setReviewRating(5)
+      setReviewComment('')
+    } catch (err: any) {
+      setReviewMessage(err.response?.data?.error || 'Failed to submit review')
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -65,6 +92,12 @@ export default function PatientAppointments() {
           </button>
         ))}
       </div>
+
+      {reviewMessage && (
+        <p className={`text-sm ${reviewMessage.includes('submitted') ? 'text-green-600' : 'text-destructive'}`}>
+          {reviewMessage}
+        </p>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-8">
@@ -112,6 +145,16 @@ export default function PatientAppointments() {
                         </Button>
                       </a>
                     )}
+                    {apt.status === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewingId(reviewingId === apt.id ? null : apt.id)}
+                      >
+                        <Star className="size-3 mr-1" />
+                        Review
+                      </Button>
+                    )}
                     {(apt.status === 'pending' || apt.status === 'confirmed') && (
                       <Button
                         size="sm"
@@ -124,6 +167,50 @@ export default function PatientAppointments() {
                     )}
                   </div>
                 </div>
+
+                {/* Inline Review Form */}
+                {reviewingId === apt.id && (
+                  <div className="mt-4 pt-4 border-t space-y-3">
+                    <div>
+                      <Label className="text-sm mb-1 block">Rating</Label>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="focus:outline-none"
+                          >
+                            <Star
+                              className={`size-6 transition-colors ${
+                                star <= reviewRating
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-muted-foreground/30 hover:text-yellow-300'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm mb-1 block">Comment (optional)</Label>
+                      <textarea
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="How was your experience?"
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => submitReview(apt.id)} disabled={reviewSubmitting}>
+                        {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setReviewingId(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

@@ -11,12 +11,13 @@ function getOAuth2Client() {
   )
 }
 
-export function getAuthUrl() {
+export function getAuthUrl(doctorId: number) {
   const oauth2Client = getOAuth2Client()
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
+    state: String(doctorId),
   })
 }
 
