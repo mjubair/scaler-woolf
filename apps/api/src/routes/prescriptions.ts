@@ -4,6 +4,8 @@ import { db } from '../db'
 import { prescriptions, appointments, doctors, users } from '../db/schema'
 import { requireAuth, requireRole } from '../middleware/auth'
 import { getDoctorByUserId } from '../services/doctor.service'
+import { sendPrescriptionEmail } from '../services/email.service'
+import { createNotification } from '../services/notification.service'
 
 const router = Router()
 
@@ -54,6 +56,46 @@ router.post(
           notes,
         })
         .returning()
+
+      // Get patient info for email and notification
+      const [patient] = await db
+        .select({ name: users.name, email: users.email })
+        .from(users)
+        .where(eq(users.id, appointment.patientId))
+
+      // Get doctor's name
+      const [doctorUser] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, req.user!.userId))
+
+      if (patient && doctorUser) {
+        // Send prescription email to patient
+        try {
+          await sendPrescriptionEmail({
+            patientEmail: patient.email,
+            patientName: patient.name,
+            doctorName: doctorUser.name,
+            diagnosis,
+            medications,
+          })
+        } catch (err) {
+          console.error('Failed to send prescription email:', err)
+        }
+
+        // In-app notification for patient
+        try {
+          await createNotification({
+            userId: appointment.patientId,
+            type: 'prescription_created',
+            title: 'New Prescription',
+            message: `Dr. ${doctorUser.name} has uploaded a prescription for your consultation.`,
+            metadata: { prescriptionId: prescription!.id, appointmentId },
+          })
+        } catch (err) {
+          console.error('Failed to create prescription notification:', err)
+        }
+      }
 
       res.status(201).json({ prescription })
     } catch (error) {

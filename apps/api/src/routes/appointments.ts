@@ -9,7 +9,7 @@ import {
   updateAppointmentStatus,
 } from '../services/appointment.service'
 import { deleteCalendarEvent } from '../services/calendar.service'
-import { sendCancellationEmail } from '../services/email.service'
+import { sendCancellationEmail, sendConsultationCompletedEmail } from '../services/email.service'
 import { createNotification } from '../services/notification.service'
 
 const router = Router()
@@ -125,6 +125,54 @@ router.patch('/:id/status', requireAuth, async (req: Request, res: Response): Pr
     if (!updated) {
       res.status(404).json({ error: 'Appointment not found' })
       return
+    }
+
+    // Post-completion actions: notify patient, prompt doctor
+    if (status === 'completed') {
+      const appointment = await getAppointmentById(appointmentId)
+      if (appointment) {
+        // Email patient that consultation is complete
+        try {
+          await sendConsultationCompletedEmail({
+            patientEmail: appointment.patientEmail,
+            patientName: appointment.patientName,
+            doctorName: appointment.doctorName,
+            date: appointment.appointmentDate,
+            time: appointment.startTime,
+          })
+        } catch (err) {
+          console.error('Failed to send completion email:', err)
+        }
+
+        // In-app notification for patient
+        try {
+          await createNotification({
+            userId: appointment.patientId,
+            type: 'consultation_completed',
+            title: 'Consultation Completed',
+            message: `Your consultation with Dr. ${appointment.doctorName} is complete. Check your prescriptions or leave a review.`,
+            metadata: { appointmentId },
+          })
+        } catch (err) {
+          console.error('Failed to create patient completion notification:', err)
+        }
+
+        // In-app notification for doctor — reminder to write prescription
+        try {
+          const doctor = await getDoctorById(appointment.doctorId)
+          if (doctor) {
+            await createNotification({
+              userId: doctor.userId,
+              type: 'write_prescription',
+              title: 'Write Prescription',
+              message: `Consultation with ${appointment.patientName} is complete. Don't forget to upload the prescription.`,
+              metadata: { appointmentId },
+            })
+          }
+        } catch (err) {
+          console.error('Failed to create doctor prescription reminder:', err)
+        }
+      }
     }
 
     res.json({ appointment: updated })

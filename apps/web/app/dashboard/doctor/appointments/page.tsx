@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { api } from '@/lib/axios'
 import { Card, CardContent, Button } from '@/components/ui'
-import { Calendar, Check, X, Video, FileText } from 'lucide-react'
+import { Calendar, Check, X, Video, FileText, Pill } from 'lucide-react'
 
 export default function DoctorAppointments() {
   const [appointments, setAppointments] = useState<any[]>([])
@@ -123,6 +124,14 @@ export default function DoctorAppointments() {
                           </a>
                         )}
                       </>
+                    )}
+                    {apt.status === 'completed' && (
+                      <Link href="/dashboard/doctor/prescriptions">
+                        <Button size="sm" variant="outline">
+                          <Pill className="size-3 mr-1" />
+                          Write Prescription
+                        </Button>
+                      </Link>
                     )}
                     {(apt.status === 'pending' || apt.status === 'confirmed') && (
                       <Button size="sm" variant="destructive" onClick={() => cancelAppointment(apt.id)}>

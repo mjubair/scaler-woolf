@@ -158,3 +158,60 @@ export async function sendPaymentReceipt(params: {
   `
   await sendEmail(params.patientEmail, 'Payment Receipt - DocBook', html)
 }
+
+export async function sendConsultationCompletedEmail(params: {
+  patientEmail: string
+  patientName: string
+  doctorName: string
+  date: string
+  time: string
+}) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Consultation Completed</h2>
+      <p>Hi ${params.patientName},</p>
+      <p>Your consultation with Dr. ${params.doctorName} has been completed.</p>
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p><strong>Doctor:</strong> Dr. ${params.doctorName}</p>
+        <p><strong>Date:</strong> ${params.date}</p>
+        <p><strong>Time:</strong> ${params.time}</p>
+      </div>
+      <p>You can now:</p>
+      <ul>
+        <li>View your prescription once the doctor uploads it</li>
+        <li>Leave a review to help other patients</li>
+      </ul>
+      <p>Visit your dashboard to view details.</p>
+      <p>Best regards,<br/>DocBook Team</p>
+    </div>
+  `
+  await sendEmail(params.patientEmail, 'Consultation Completed - DocBook', html)
+}
+
+export async function sendPrescriptionEmail(params: {
+  patientEmail: string
+  patientName: string
+  doctorName: string
+  diagnosis: string
+  medications: Array<{ name: string; dosage: string; frequency: string; duration: string }>
+}) {
+  const medsList = params.medications
+    .map((m) => `<li><strong>${m.name}</strong> — ${m.dosage}, ${m.frequency}, ${m.duration}</li>`)
+    .join('')
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Prescription Available</h2>
+      <p>Hi ${params.patientName},</p>
+      <p>Dr. ${params.doctorName} has uploaded a prescription for you.</p>
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p><strong>Diagnosis:</strong> ${params.diagnosis}</p>
+        <p><strong>Medications:</strong></p>
+        <ul>${medsList}</ul>
+      </div>
+      <p>Login to your dashboard to view the full prescription details.</p>
+      <p>Best regards,<br/>DocBook Team</p>
+    </div>
+  `
+  await sendEmail(params.patientEmail, 'New Prescription - DocBook', html)
+}
