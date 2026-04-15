@@ -272,3 +272,29 @@ export const notifications = pgTable('notifications', {
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }))
+
+// ── Appointment Attachments ────────────────────────────────────────────────
+
+export const appointmentAttachments = pgTable('appointment_attachments', {
+  id: serial('id').primaryKey(),
+  appointmentId: integer('appointment_id')
+    .notNull()
+    .references(() => appointments.id, { onDelete: 'cascade' }),
+  patientId: integer('patient_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  fileType: varchar('file_type', { length: 50 }).notNull(),
+  fileSize: integer('file_size').notNull(),
+  cloudinaryUrl: varchar('cloudinary_url', { length: 500 }).notNull(),
+  cloudinaryId: varchar('cloudinary_id', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const appointmentAttachmentsRelations = relations(appointmentAttachments, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [appointmentAttachments.appointmentId],
+    references: [appointments.id],
+  }),
+  patient: one(users, { fields: [appointmentAttachments.patientId], references: [users.id] }),
+}))

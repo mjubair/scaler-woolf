@@ -15,6 +15,7 @@ import prescriptionsRouter from './routes/prescriptions'
 import patientsRouter from './routes/patients'
 import notificationsRouter from './routes/notifications'
 import adminRouter from './routes/admin'
+import attachmentsRouter from './routes/attachments'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -55,6 +56,7 @@ app.use('/api/prescriptions', prescriptionsRouter)
 app.use('/api/patients', patientsRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/attachments', attachmentsRouter)
 
 // Root
 app.get('/', (_req: Request, res: Response) => {

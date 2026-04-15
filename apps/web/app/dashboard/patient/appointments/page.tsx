@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/axios'
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/components/ui'
-import { Calendar, Video, X, Star } from 'lucide-react'
+import { Calendar, Video, X, Star, Paperclip, Upload, Trash2, FileText, Image } from 'lucide-react'
+
+interface Attachment {
+  id: number
+  fileName: string
+  fileType: string
+  fileSize: number
+  cloudinaryUrl: string
+  createdAt: string
+}
 
 export default function PatientAppointments() {
   const [appointments, setAppointments] = useState<any[]>([])
@@ -17,6 +26,12 @@ export default function PatientAppointments() {
   const [reviewComment, setReviewComment] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewMessage, setReviewMessage] = useState('')
+
+  // Attachment state
+  const [attachingId, setAttachingId] = useState<number | null>(null)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
 
   useEffect(() => {
     fetchAppointments()
@@ -62,6 +77,77 @@ export default function PatientAppointments() {
     } finally {
       setReviewSubmitting(false)
     }
+  }
+
+  async function toggleAttachments(appointmentId: number) {
+    if (attachingId === appointmentId) {
+      setAttachingId(null)
+      setAttachments([])
+      setUploadMessage('')
+      return
+    }
+    setAttachingId(appointmentId)
+    setUploadMessage('')
+    try {
+      const { data } = await api.get(`/api/attachments/appointment/${appointmentId}`)
+      setAttachments(data.attachments)
+    } catch {
+      setAttachments([])
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, appointmentId: number) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadMessage('File must be under 10MB')
+      return
+    }
+
+    setUploading(true)
+    setUploadMessage('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('appointmentId', String(appointmentId))
+
+      await api.post('/api/attachments/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      // Refresh attachments
+      const { data } = await api.get(`/api/attachments/appointment/${appointmentId}`)
+      setAttachments(data.attachments)
+      setUploadMessage('File uploaded successfully')
+    } catch (err: any) {
+      setUploadMessage(err.response?.data?.error || 'Upload failed')
+    } finally {
+      setUploading(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  async function deleteAttachment(attachmentId: number, appointmentId: number) {
+    if (!confirm('Delete this file?')) return
+    try {
+      await api.delete(`/api/attachments/${attachmentId}`)
+      const { data } = await api.get(`/api/attachments/appointment/${appointmentId}`)
+      setAttachments(data.attachments)
+    } catch {
+    }
+  }
+
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  function getFileIcon(fileType: string) {
+    if (fileType.startsWith('image/')) return <Image className="size-4 text-blue-500" />
+    return <FileText className="size-4 text-red-500" />
   }
 
   const filters = ['', 'pending', 'confirmed', 'completed', 'cancelled']
@@ -128,7 +214,7 @@ export default function PatientAppointments() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                       apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                       apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
@@ -144,6 +230,16 @@ export default function PatientAppointments() {
                           Join
                         </Button>
                       </a>
+                    )}
+                    {(apt.status === 'pending' || apt.status === 'confirmed') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleAttachments(apt.id)}
+                      >
+                        <Paperclip className="size-3 mr-1" />
+                        Files
+                      </Button>
                     )}
                     {apt.status === 'completed' && (
                       <Button
@@ -167,6 +263,70 @@ export default function PatientAppointments() {
                     )}
                   </div>
                 </div>
+
+                {/* Attachments Section */}
+                {attachingId === apt.id && (
+                  <div className="mt-4 pt-4 border-t space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Attached Files</Label>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                          onChange={(e) => handleFileUpload(e, apt.id)}
+                          disabled={uploading}
+                        />
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-muted transition-colors">
+                          <Upload className="size-3" />
+                          {uploading ? 'Uploading...' : 'Upload File'}
+                        </span>
+                      </label>
+                    </div>
+
+                    {uploadMessage && (
+                      <p className={`text-xs ${uploadMessage.includes('success') ? 'text-green-600' : 'text-destructive'}`}>
+                        {uploadMessage}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      Max 5 files, 10MB each. Accepted: JPEG, PNG, PDF, DOC, DOCX
+                    </p>
+
+                    {attachments.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No files uploaded yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {attachments.map((att) => (
+                          <div key={att.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {getFileIcon(att.fileType)}
+                              <a
+                                href={att.cloudinaryUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary underline truncate"
+                              >
+                                {att.fileName}
+                              </a>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {formatFileSize(att.fileSize)}
+                              </span>
+                            </div>
+                            <Button
+                              size="icon-xs"
+                              variant="ghost"
+                              onClick={() => deleteAttachment(att.id, apt.id)}
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Inline Review Form */}
                 {reviewingId === apt.id && (

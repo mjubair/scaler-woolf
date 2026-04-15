@@ -18,6 +18,9 @@ import {
   User,
   Pill,
   StickyNote,
+  Paperclip,
+  Image,
+  Download,
 } from 'lucide-react'
 
 interface Appointment {
@@ -59,6 +62,15 @@ interface Medication {
   duration: string
 }
 
+interface Attachment {
+  id: number
+  fileName: string
+  fileType: string
+  fileSize: number
+  cloudinaryUrl: string
+  createdAt: string
+}
+
 export default function ConsultationPage() {
   const params = useParams()
   const router = useRouter()
@@ -69,6 +81,7 @@ export default function ConsultationPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null)
   const [medicalHistory, setMedicalHistory] = useState<MedicalEntry[]>([])
   const [pastPrescriptions, setPastPrescriptions] = useState<PastPrescription[]>([])
+  const [patientAttachments, setPatientAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
 
   // Notes state
@@ -97,10 +110,11 @@ export default function ConsultationPage() {
         setAppointment(apt)
         setNotes(apt.doctorNotes || '')
 
-        // Fetch patient medical history and past prescriptions in parallel
-        const [historyRes, rxRes] = await Promise.allSettled([
+        // Fetch patient data in parallel
+        const [historyRes, rxRes, attachRes] = await Promise.allSettled([
           api.get(`/api/patients/${apt.patientId}/medical-history`),
           api.get(`/api/prescriptions/patient/${apt.patientId}`),
+          api.get(`/api/attachments/appointment/${appointmentId}`),
         ])
 
         if (historyRes.status === 'fulfilled') {
@@ -108,6 +122,9 @@ export default function ConsultationPage() {
         }
         if (rxRes.status === 'fulfilled') {
           setPastPrescriptions(rxRes.value.data.prescriptions)
+        }
+        if (attachRes.status === 'fulfilled') {
+          setPatientAttachments(attachRes.value.data.attachments)
         }
       } catch {
         // appointment not found or access denied
@@ -341,6 +358,50 @@ export default function ConsultationPage() {
                         ))}
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Patient Documents */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Paperclip className="size-4" />
+                Patient Documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {patientAttachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No documents uploaded by patient.</p>
+              ) : (
+                <div className="space-y-2">
+                  {patientAttachments.map((att) => (
+                    <a
+                      key={att.id}
+                      href={att.cloudinaryUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 hover:bg-muted transition-colors"
+                    >
+                      {att.fileType.startsWith('image/') ? (
+                        <Image className="size-4 text-blue-500 shrink-0" />
+                      ) : (
+                        <FileText className="size-4 text-red-500 shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate">{att.fileName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {att.fileSize < 1024 * 1024
+                            ? `${(att.fileSize / 1024).toFixed(1)} KB`
+                            : `${(att.fileSize / (1024 * 1024)).toFixed(1)} MB`}
+                          {' — '}
+                          {new Date(att.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Download className="size-4 text-muted-foreground shrink-0" />
+                    </a>
                   ))}
                 </div>
               )}

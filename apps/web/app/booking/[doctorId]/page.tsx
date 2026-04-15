@@ -46,6 +46,10 @@ export default function BookingPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [meetLink, setMeetLink] = useState<string | null>(null)
+  const [bookedAppointmentId, setBookedAppointmentId] = useState<number | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{ id: number; fileName: string }>>([])
+  const [uploadMsg, setUploadMsg] = useState('')
 
   // Auth guard — redirect to login if not authenticated
   useEffect(() => {
@@ -101,6 +105,7 @@ export default function BookingPage() {
       })
 
       const appointmentId = appointmentData.appointment.id
+      setBookedAppointmentId(appointmentId)
 
       // Step 2: Create Razorpay order
       const { data: orderData } = await api.post('/api/payments/create-order', {
@@ -192,6 +197,65 @@ export default function BookingPage() {
                   You&apos;ll receive a Google Meet link via email.
                 </p>
               )}
+              {/* Upload reports section */}
+              {bookedAppointmentId && (
+                <div className="border rounded-lg p-4 text-left space-y-3">
+                  <p className="text-sm font-medium">Share reports or documents with your doctor</p>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        if (file.size > 10 * 1024 * 1024) {
+                          setUploadMsg('File must be under 10MB')
+                          return
+                        }
+                        setUploadingFile(true)
+                        setUploadMsg('')
+                        try {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('appointmentId', String(bookedAppointmentId))
+                          const { data } = await api.post('/api/attachments/upload', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                          })
+                          setUploadedFiles((prev) => [
+                            ...prev,
+                            { id: data.attachment.id, fileName: data.attachment.fileName },
+                          ])
+                          setUploadMsg('File uploaded!')
+                        } catch (err: any) {
+                          setUploadMsg(err.response?.data?.error || 'Upload failed')
+                        } finally {
+                          setUploadingFile(false)
+                          e.target.value = ''
+                        }
+                      }}
+                      disabled={uploadingFile}
+                    />
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors cursor-pointer">
+                      {uploadingFile ? 'Uploading...' : 'Upload Lab Report / Image'}
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">JPEG, PNG, PDF, DOC — max 10MB, 5 files</p>
+                  {uploadMsg && (
+                    <p className={`text-xs ${uploadMsg.includes('uploaded') ? 'text-green-600' : 'text-destructive'}`}>
+                      {uploadMsg}
+                    </p>
+                  )}
+                  {uploadedFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {uploadedFiles.map((f) => (
+                        <p key={f.id} className="text-xs text-muted-foreground">Uploaded: {f.fileName}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3 justify-center">
                 <Link href="/dashboard/patient/appointments">
                   <Button>View Appointments</Button>
