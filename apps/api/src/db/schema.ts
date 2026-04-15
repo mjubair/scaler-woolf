@@ -119,6 +119,7 @@ export const appointments = pgTable('appointments', {
   endTime: time('end_time').notNull(),
   status: appointmentStatusEnum('status').notNull().default('pending'),
   reason: text('reason'),
+  doctorNotes: text('doctor_notes'),
   googleMeetLink: varchar('google_meet_link', { length: 500 }),
   googleEventId: varchar('google_event_id', { length: 255 }),
   cancelledBy: cancelledByEnum('cancelled_by'),

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../db'
-import { medicalHistory, users } from '../db/schema'
+import { medicalHistory, users, appointments, doctors } from '../db/schema'
 import { requireAuth, requireRole } from '../middleware/auth'
 
 const router = Router()
@@ -170,6 +170,51 @@ router.delete(
       res.json({ message: 'Medical history entry deleted' })
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete medical history' })
+    }
+  },
+)
+
+// ── Doctor-facing: View patient medical history ────────────────────────────
+// GET /api/patients/:patientId/medical-history (doctor only, must have appointment with patient)
+router.get(
+  '/:patientId/medical-history',
+  requireAuth,
+  requireRole('doctor'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const patientId = Number(req.params.patientId)
+
+      // Verify doctor has an appointment with this patient
+      const [doctor] = await db
+        .select({ id: doctors.id })
+        .from(doctors)
+        .where(eq(doctors.userId, req.user!.userId))
+
+      if (!doctor) {
+        res.status(404).json({ error: 'Doctor profile not found' })
+        return
+      }
+
+      const [hasAppointment] = await db
+        .select({ id: appointments.id })
+        .from(appointments)
+        .where(and(eq(appointments.doctorId, doctor.id), eq(appointments.patientId, patientId)))
+        .limit(1)
+
+      if (!hasAppointment) {
+        res.status(403).json({ error: 'You can only view medical history for your own patients' })
+        return
+      }
+
+      const history = await db
+        .select()
+        .from(medicalHistory)
+        .where(eq(medicalHistory.patientId, patientId))
+        .orderBy(desc(medicalHistory.createdAt))
+
+      res.json({ medicalHistory: history })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch medical history' })
     }
   },
 )

@@ -170,4 +170,37 @@ router.get(
   },
 )
 
+// GET /api/prescriptions/patient/:patientId — doctor views a patient's past prescriptions
+router.get(
+  '/patient/:patientId',
+  requireAuth,
+  requireRole('doctor'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const patientId = Number(req.params.patientId)
+
+      const result = await db
+        .select({
+          id: prescriptions.id,
+          diagnosis: prescriptions.diagnosis,
+          medications: prescriptions.medications,
+          notes: prescriptions.notes,
+          createdAt: prescriptions.createdAt,
+          appointmentId: prescriptions.appointmentId,
+          doctorName: users.name,
+          doctorSpecialization: doctors.specialization,
+        })
+        .from(prescriptions)
+        .innerJoin(doctors, eq(prescriptions.doctorId, doctors.id))
+        .innerJoin(users, eq(doctors.userId, users.id))
+        .where(eq(prescriptions.patientId, patientId))
+        .orderBy(desc(prescriptions.createdAt))
+
+      res.json({ prescriptions: result })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch patient prescriptions' })
+    }
+  },
+)
+
 export default router

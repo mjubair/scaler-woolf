@@ -111,15 +111,17 @@ export default function DoctorAppointments() {
                     )}
                     {apt.status === 'confirmed' && (
                       <>
-                        <Button size="sm" onClick={() => updateStatus(apt.id, 'completed')}>
-                          <Check className="size-3 mr-1" />
-                          Complete
-                        </Button>
+                        <Link href={`/dashboard/doctor/consultation/${apt.id}`}>
+                          <Button size="sm">
+                            <Video className="size-3 mr-1" />
+                            Start Consultation
+                          </Button>
+                        </Link>
                         {apt.googleMeetLink && (
                           <a href={apt.googleMeetLink} target="_blank" rel="noopener noreferrer">
                             <Button size="sm" variant="outline">
                               <Video className="size-3 mr-1" />
-                              Join
+                              Join Meet
                             </Button>
                           </a>
                         )}

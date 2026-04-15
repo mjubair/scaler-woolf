@@ -6,6 +6,7 @@ import {
   getAppointmentById,
   getPatientAppointments,
   getDoctorAppointments,
+  updateAppointmentNotes,
   updateAppointmentStatus,
 } from '../services/appointment.service'
 import { deleteCalendarEvent } from '../services/calendar.service'
@@ -178,6 +179,37 @@ router.patch('/:id/status', requireAuth, async (req: Request, res: Response): Pr
     res.json({ appointment: updated })
   } catch (error) {
     res.status(500).json({ error: 'Failed to update appointment status' })
+  }
+})
+
+// PATCH /api/appointments/:id/notes — save doctor's consultation notes
+router.patch('/:id/notes', requireAuth, requireRole('doctor'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const appointmentId = Number(req.params.id)
+    const { notes } = req.body
+
+    if (notes === undefined) {
+      res.status(400).json({ error: 'notes field is required' })
+      return
+    }
+
+    // Verify appointment belongs to this doctor
+    const appointment = await getAppointmentById(appointmentId)
+    if (!appointment) {
+      res.status(404).json({ error: 'Appointment not found' })
+      return
+    }
+
+    const doctor = await getDoctorByUserId(req.user!.userId)
+    if (!doctor || appointment.doctorId !== doctor.id) {
+      res.status(403).json({ error: 'You can only update notes for your own appointments' })
+      return
+    }
+
+    const updated = await updateAppointmentNotes(appointmentId, notes)
+    res.json({ appointment: updated })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update notes' })
   }
 })
 

@@ -67,6 +67,7 @@ export async function getAppointmentById(appointmentId: number) {
       endTime: appointments.endTime,
       status: appointments.status,
       reason: appointments.reason,
+      doctorNotes: appointments.doctorNotes,
       googleMeetLink: appointments.googleMeetLink,
       googleEventId: appointments.googleEventId,
       cancelledBy: appointments.cancelledBy,
@@ -160,6 +161,16 @@ export async function updateAppointmentStatus(
   const [updated] = await db
     .update(appointments)
     .set(updateData)
+    .where(eq(appointments.id, appointmentId))
+    .returning()
+
+  return updated || null
+}
+
+export async function updateAppointmentNotes(appointmentId: number, notes: string) {
+  const [updated] = await db
+    .update(appointments)
+    .set({ doctorNotes: notes, updatedAt: new Date() })
     .where(eq(appointments.id, appointmentId))
     .returning()
 
