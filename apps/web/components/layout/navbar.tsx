@@ -17,10 +17,10 @@ export function Navbar() {
     : '/login'
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b border-primary/10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-          <Stethoscope className="size-5 text-primary" />
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+          <Stethoscope className="size-5" />
           DocBook
         </Link>
 

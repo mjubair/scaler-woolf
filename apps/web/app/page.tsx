@@ -75,12 +75,12 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 sm:py-32">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-              Your Health,{' '}
-              <span className="text-primary">One Click Away</span>
+              Your Home for{' '}
+              <span className="text-primary">Health</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              Book online consultations with verified doctors. Get prescriptions,
-              manage your medical history, and consult via Google Meet — all from
+              Consult top doctors online. Get prescriptions,
+              manage your medical history, and connect via Google Meet — all from
               the comfort of your home.
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
@@ -101,7 +101,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
@@ -122,7 +122,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="py-20">
+      <section className="py-20 bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight">Everything You Need</h2>
@@ -145,22 +145,22 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-20 bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">Ready to Get Started?</h2>
-          <p className="mt-4 text-lg opacity-90 max-w-xl mx-auto">
+          <h2 className="text-3xl font-bold tracking-tight text-white">Ready to Get Started?</h2>
+          <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto">
             Join thousands of patients and doctors on DocBook. Book your first
             consultation today.
           </p>
           <div className="mt-8 flex items-center justify-center gap-4">
             <Link href="/register">
-              <Button size="lg" variant="secondary" className="gap-2">
+              <Button size="lg" className="gap-2 bg-white text-primary hover:bg-white/90 font-semibold">
                 Create Account
                 <ArrowRight className="size-4" />
               </Button>
             </Link>
             <Link href="/doctors">
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button size="lg" className="bg-transparent border border-white/30 text-white hover:bg-white/10">
                 Browse Doctors
               </Button>
             </Link>
@@ -169,10 +169,10 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
+      <footer className="border-t border-primary/10 py-8 bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-semibold">
-            <Stethoscope className="size-5 text-primary" />
+          <div className="flex items-center gap-2 font-bold text-primary">
+            <Stethoscope className="size-5" />
             DocBook
           </div>
           <p className="text-sm text-muted-foreground">
