@@ -20,6 +20,10 @@ function getTransporter() {
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@docbook.com'
 
 export async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.SMTP_USER) {
+    console.log(`[Email skipped] No SMTP configured. To: ${to} | Subject: ${subject}`)
+    return
+  }
   try {
     const transport = getTransporter()
     await transport.sendMail({
@@ -28,6 +32,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
       subject,
       html,
     })
+    console.log(`[Email sent] To: ${to} | Subject: ${subject}`)
   } catch (error) {
     console.error('Failed to send email:', error)
   }
