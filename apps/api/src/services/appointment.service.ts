@@ -113,7 +113,7 @@ export async function getPatientAppointments(patientId: number, status?: string)
     .innerJoin(doctors, eq(appointments.doctorId, doctors.id))
     .innerJoin(users, eq(doctors.userId, users.id))
     .where(and(...conditions))
-    .orderBy(desc(appointments.appointmentDate))
+    .orderBy(desc(appointments.appointmentDate), desc(appointments.startTime))
 }
 
 export async function getDoctorAppointments(doctorId: number, status?: string) {
@@ -140,7 +140,7 @@ export async function getDoctorAppointments(doctorId: number, status?: string) {
     .from(appointments)
     .innerJoin(users, eq(appointments.patientId, users.id))
     .where(and(...conditions))
-    .orderBy(desc(appointments.appointmentDate))
+    .orderBy(desc(appointments.appointmentDate), desc(appointments.startTime))
 }
 
 export async function updateAppointmentStatus(
