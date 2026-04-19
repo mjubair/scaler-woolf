@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/layout/navbar'
+import { DoctorSearch, SPECIALIZATIONS } from '@/components/layout/doctor-search'
 import { Button, Card, CardContent } from '@/components/ui'
 import {
   Stethoscope,
@@ -13,6 +15,7 @@ import {
   Heart,
   CreditCard,
   ArrowRight,
+  Clock,
 } from 'lucide-react'
 
 const features = [
@@ -58,22 +61,17 @@ const features = [
   },
 ]
 
-const steps = [
-  { step: '1', title: 'Find a Doctor', description: 'Search by specialization, rating, or name' },
-  { step: '2', title: 'Book a Slot', description: 'Choose a date and available time slot' },
-  { step: '3', title: 'Make Payment', description: 'Pay the consultation fee securely via Razorpay' },
-  { step: '4', title: 'Consult Online', description: 'Join via Google Meet at the scheduled time' },
-]
-
 export default function Home() {
+  const router = useRouter()
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 sm:py-32">
-          <div className="mx-auto max-w-2xl text-center">
+      {/* Hero Section with Search */}
+      <section className="relative bg-gradient-to-b from-primary/5 to-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-24">
+          <div className="mx-auto max-w-2xl text-center mb-10">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
               Your Home for{' '}
               <span className="text-primary">Health</span>
@@ -83,38 +81,93 @@ export default function Home() {
               manage your medical history, and connect via Google Meet — all from
               the comfort of your home.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/doctors">
-                <Button size="lg" className="gap-2">
-                  Find a Doctor
-                  <ArrowRight className="size-4" />
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="lg" variant="outline">
-                  Join as Doctor
-                </Button>
-              </Link>
+          </div>
+
+          {/* Search bar */}
+          <DoctorSearch
+            variant="hero"
+            onSelect={(type, value) => {
+              if (type === 'specialization') {
+                router.push(`/doctors?specialization=${encodeURIComponent(value)}`)
+              } else {
+                router.push(`/doctors?search=${encodeURIComponent(value)}`)
+              }
+            }}
+          />
+
+          {/* Trust badges */}
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-10 mt-10 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Shield className="size-5 text-green-600" />
+              <span>Verified Doctors</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="size-5 text-blue-600" />
+              <span>Available in 15 min</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Video className="size-5 text-purple-600" />
+              <span>Video Consultation</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="py-20">
+      {/* Specialization cards */}
+      <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
-            <p className="mt-2 text-muted-foreground">Book a consultation in 4 simple steps</p>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold tracking-tight">Consult by Specialization</h2>
+            <p className="mt-2 text-muted-foreground">Choose a specialty to find the right doctor for you</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="mx-auto mb-4 size-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {SPECIALIZATIONS.map((spec) => {
+              const Icon = spec.icon
+              return (
+                <Link
+                  key={spec.name}
+                  href={`/doctors?specialization=${encodeURIComponent(spec.name)}`}
+                  className="group text-left rounded-2xl border border-border bg-background p-5 hover:shadow-lg hover:border-primary/20 transition-all duration-200"
+                >
+                  <div className={`size-12 rounded-xl ${spec.bg} flex items-center justify-center mb-4`}>
+                    <Icon className={`size-6 ${spec.color}`} />
+                  </div>
+                  <h3 className="font-semibold text-base mb-0.5">{spec.name}</h3>
+                  <p className="text-xs text-muted-foreground mb-3">{spec.conditions}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-primary">
+                      From Rs. {spec.startingFee}
+                    </span>
+                    <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      Consult Now &rarr;
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-16 bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
+            <p className="mt-2 text-muted-foreground">Book a consultation in 3 simple steps</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {[
+              { step: '1', title: 'Choose a Doctor', desc: 'Pick a specialization or search for a doctor by name. View profiles, ratings, and fees.' },
+              { step: '2', title: 'Book & Pay', desc: 'Select a convenient time slot, pay securely via Razorpay, and get instant confirmation.' },
+              { step: '3', title: 'Consult Online', desc: 'Join via Google Meet at your appointment time. Get prescriptions and follow-up notes.' },
+            ].map((item) => (
+              <div key={item.step} className="text-center px-4">
+                <div className="size-12 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center mx-auto mb-4 text-lg">
                   {item.step}
                 </div>
-                <h3 className="font-semibold text-lg">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -122,9 +175,9 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <h2 className="text-3xl font-bold tracking-tight">Everything You Need</h2>
             <p className="mt-2 text-muted-foreground">A complete healthcare consultation platform</p>
           </div>
