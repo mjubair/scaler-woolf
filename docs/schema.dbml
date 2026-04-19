@@ -1,0 +1,158 @@
+// DocBook - Doctor Online Consultation Booking App
+// Database Schema (DBML)
+// Visualize at: https://dbdiagram.io
+
+Enum user_role {
+  patient
+  doctor
+  admin
+}
+
+Enum appointment_status {
+  pending
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+Enum cancelled_by {
+  patient
+  doctor
+  admin
+}
+
+Enum payment_status {
+  created
+  paid
+  failed
+  refunded
+}
+
+Table users {
+  id serial [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  role user_role [not null, default: 'patient']
+  phone varchar(20)
+  avatar varchar(500)
+  is_active boolean [not null, default: true]
+  is_verified boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table doctors {
+  id serial [pk, increment]
+  user_id integer [not null, unique, ref: - users.id]
+  specialization varchar(255) [not null]
+  qualification varchar(500) [not null]
+  experience integer [not null, default: 0]
+  consultation_fee decimal(10,2) [not null]
+  bio text
+  hospital_name varchar(255)
+  address text
+  is_approved boolean [not null, default: false]
+  avg_rating decimal(3,2) [default: 0]
+  total_reviews integer [not null, default: 0]
+  google_refresh_token text [note: 'Encrypted OAuth refresh token for Google Calendar']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table availability_slots {
+  id serial [pk, increment]
+  doctor_id integer [not null, ref: > doctors.id]
+  day_of_week integer [not null, note: '0=Sunday, 6=Saturday']
+  start_time time [not null]
+  end_time time [not null]
+  is_active boolean [not null, default: true]
+}
+
+Table appointments {
+  id serial [pk, increment]
+  patient_id integer [not null, ref: > users.id]
+  doctor_id integer [not null, ref: > doctors.id]
+  slot_id integer [ref: > availability_slots.id]
+  appointment_date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  status appointment_status [not null, default: 'pending']
+  reason text [note: 'Patient reason for visit']
+  doctor_notes text [note: 'Doctor consultation notes']
+  google_meet_link varchar(500)
+  google_event_id varchar(255)
+  cancelled_by cancelled_by
+  cancellation_reason text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table payments {
+  id serial [pk, increment]
+  appointment_id integer [not null, ref: - appointments.id]
+  patient_id integer [not null, ref: > users.id]
+  amount decimal(10,2) [not null]
+  currency varchar(10) [not null, default: 'INR']
+  razorpay_order_id varchar(255)
+  razorpay_payment_id varchar(255)
+  razorpay_signature varchar(255)
+  status payment_status [not null, default: 'created']
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table reviews {
+  id serial [pk, increment]
+  appointment_id integer [not null, unique, ref: - appointments.id]
+  patient_id integer [not null, ref: > users.id]
+  doctor_id integer [not null, ref: > doctors.id]
+  rating integer [not null, note: '1-5']
+  comment text
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table prescriptions {
+  id serial [pk, increment]
+  appointment_id integer [not null, ref: > appointments.id]
+  doctor_id integer [not null, ref: > doctors.id]
+  patient_id integer [not null, ref: > users.id]
+  diagnosis text [not null]
+  medications jsonb [not null, note: '[{name, dosage, frequency, duration}]']
+  notes text
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table medical_history {
+  id serial [pk, increment]
+  patient_id integer [not null, ref: > users.id]
+  condition varchar(255) [not null]
+  description text
+  diagnosed_date date
+  is_ongoing boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table notifications {
+  id serial [pk, increment]
+  user_id integer [not null, ref: > users.id]
+  type varchar(50) [not null]
+  title varchar(255) [not null]
+  message text [not null]
+  is_read boolean [not null, default: false]
+  metadata jsonb
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table appointment_attachments {
+  id serial [pk, increment]
+  appointment_id integer [not null, ref: > appointments.id]
+  patient_id integer [not null, ref: > users.id]
+  file_name varchar(255) [not null]
+  file_type varchar(50) [not null]
+  file_size integer [not null, note: 'Size in bytes']
+  cloudinary_url varchar(500) [not null]
+  cloudinary_id varchar(255) [not null]
+  created_at timestamp [not null, default: `now()`]
+}
