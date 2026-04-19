@@ -38,7 +38,6 @@ const doctorLinks: SidebarLink[] = [
   { href: '/dashboard/doctor/availability', label: 'Availability', icon: <Clock className="size-4" /> },
   { href: '/dashboard/doctor/prescriptions', label: 'Prescriptions', icon: <FileText className="size-4" /> },
   { href: '/dashboard/doctor/reviews', label: 'Reviews', icon: <Star className="size-4" /> },
-  { href: '/dashboard/doctor/calendar', label: 'Google Calendar', icon: <LayoutDashboard className="size-4" /> },
   { href: '/dashboard/doctor/profile', label: 'Profile', icon: <Settings className="size-4" /> },
 ]
 

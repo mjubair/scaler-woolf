@@ -8,6 +8,7 @@ import { useAuth } from '@/context'
 import { Button, Input, Label } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { Stethoscope, User } from 'lucide-react'
+import { PLATFORM_STATS } from '@/components/layout/doctor-search'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -26,11 +27,8 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const user = await register(name, email, password, role, phone || undefined)
-      if (user.role === 'doctor') {
-        router.push('/dashboard/doctor/profile')
-      } else {
-        router.push('/dashboard/patient')
-      }
+      if (user.role === 'doctor') router.push('/dashboard/doctor/profile')
+      else router.push('/dashboard/patient')
     } catch (err) {
       setError(
         isAxiosError(err) ? (err.response?.data?.error ?? 'Registration failed') : 'Registration failed',
@@ -41,29 +39,43 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col md:grid md:grid-cols-2">
-      {/* Left panel */}
-      <div className="relative hidden flex-col bg-zinc-900 p-10 text-white dark:border-r md:flex">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-          <Stethoscope className="size-6" />
-          DocBook
-        </Link>
-        <div className="mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-lg leading-relaxed">
-              &ldquo;Join our platform to connect with verified doctors or offer
-              your medical expertise to patients who need it.&rdquo;
+    <div className="flex min-h-screen">
+      {/* Left panel — image */}
+      <div className="relative hidden md:flex flex-1 flex-col overflow-hidden">
+        <img
+          src="/doctors/login-hero.jpg"
+          alt="Doctor consultation"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-primary/30" />
+        <div className="relative z-10 flex flex-col h-full p-10 text-white">
+          <Link href="/" className="flex items-center gap-2 text-lg font-bold">
+            <Stethoscope className="size-6" />
+            DocBook
+          </Link>
+          <div className="mt-auto space-y-4">
+            <h2 className="text-3xl font-bold leading-tight">Join our<br />healthcare platform.</h2>
+            <p className="text-white/80 max-w-sm">
+              Connect with verified doctors or offer your medical expertise to patients who need it.
             </p>
-            <footer className="text-sm text-zinc-400">DocBook — Online Consultation Platform</footer>
-          </blockquote>
+            <div className="flex gap-6 text-sm text-white/70 pt-2">
+              <span>{PLATFORM_STATS.doctorCount} Doctors</span>
+              <span>{PLATFORM_STATS.specializationCount} Specializations</span>
+              <span>Video Consult</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
-        <div className="mx-auto w-full max-w-sm space-y-6">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
+      {/* Right panel — form */}
+      <div className="w-full md:w-[480px] flex items-center justify-center px-8 py-12 shrink-0">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-primary mb-4">
+              <Stethoscope className="size-6" />
+              <span className="text-xl font-bold">DocBook</span>
+            </div>
+            <h1 className="text-2xl font-bold">Create an account</h1>
             <p className="text-sm text-muted-foreground">Choose your role and enter your details</p>
           </div>
 
@@ -73,7 +85,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setRole('patient')}
               className={cn(
-                'flex flex-col items-center gap-2 rounded-lg border p-4 text-sm transition-all',
+                'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm transition-all',
                 role === 'patient'
                   ? 'border-primary bg-primary/5 text-primary'
                   : 'border-border text-muted-foreground hover:border-primary/50',
@@ -87,7 +99,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setRole('doctor')}
               className={cn(
-                'flex flex-col items-center gap-2 rounded-lg border p-4 text-sm transition-all',
+                'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm transition-all',
                 role === 'doctor'
                   ? 'border-primary bg-primary/5 text-primary'
                   : 'border-border text-muted-foreground hover:border-primary/50',
@@ -107,7 +119,7 @@ export default function RegisterPage() {
                 type="text"
                 placeholder={role === 'doctor' ? 'Dr. John Doe' : 'John Doe'}
                 autoComplete="name"
-                className="h-9"
+                className="h-10"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -121,7 +133,7 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="name@example.com"
                 autoComplete="email"
-                className="h-9"
+                className="h-10"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -135,7 +147,7 @@ export default function RegisterPage() {
                 type="tel"
                 placeholder="+91 98765 43210"
                 autoComplete="tel"
-                className="h-9"
+                className="h-10"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
@@ -148,7 +160,7 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Min. 8 characters"
                 autoComplete="new-password"
-                className="h-9"
+                className="h-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -172,9 +184,9 @@ export default function RegisterPage() {
             </p>
           )}
 
-          <p className={cn('px-8 text-center text-sm text-muted-foreground')}>
+          <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+            <Link href="/login" className="text-primary font-medium hover:underline">
               Sign in
             </Link>
           </p>

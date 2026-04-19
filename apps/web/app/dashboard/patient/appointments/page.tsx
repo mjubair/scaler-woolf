@@ -2,9 +2,27 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { isAxiosError } from 'axios'
 import { api } from '@/lib/axios'
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label } from '@/components/ui'
-import { Calendar, Video, X, Star, Paperclip, Upload, Trash2, FileText, Image } from 'lucide-react'
+import { Calendar, Clock, Video, X, Star, Paperclip, Upload, Trash2, FileText, Image, MessageSquare, Hourglass } from 'lucide-react'
+
+interface Appointment {
+  id: number
+  appointmentDate: string
+  startTime: string | null
+  endTime: string | null
+  status: string
+  reason: string | null
+  patientNote: string | null
+  googleMeetLink: string | null
+  doctorName: string | null
+  doctorSpecialization: string | null
+  doctorAvatar: string | null
+  reviewId: number | null
+  reviewRating: number | null
+  reviewComment: string | null
+}
 
 interface Attachment {
   id: number
@@ -16,7 +34,7 @@ interface Attachment {
 }
 
 export default function PatientAppointments() {
-  const [appointments, setAppointments] = useState<any[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filter, setFilter] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
@@ -32,6 +50,12 @@ export default function PatientAppointments() {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
+
+  // Patient note state
+  const [noteEditingId, setNoteEditingId] = useState<number | null>(null)
+  const [noteValue, setNoteValue] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
+  const [noteMessage, setNoteMessage] = useState('')
 
   useEffect(() => {
     fetchAppointments()
@@ -72,10 +96,37 @@ export default function PatientAppointments() {
       setReviewingId(null)
       setReviewRating(5)
       setReviewComment('')
-    } catch (err: any) {
-      setReviewMessage(err.response?.data?.error || 'Failed to submit review')
+      fetchAppointments()
+    } catch (err: unknown) {
+      setReviewMessage(isAxiosError(err) ? (err.response?.data?.error || 'Failed to submit review') : 'Failed to submit review')
     } finally {
       setReviewSubmitting(false)
+    }
+  }
+
+  function toggleNote(apt: Appointment) {
+    if (noteEditingId === apt.id) {
+      setNoteEditingId(null)
+      setNoteValue('')
+      setNoteMessage('')
+      return
+    }
+    setNoteEditingId(apt.id)
+    setNoteValue(apt.patientNote ?? '')
+    setNoteMessage('')
+  }
+
+  async function saveNote(appointmentId: number) {
+    setNoteSaving(true)
+    setNoteMessage('')
+    try {
+      await api.patch(`/api/appointments/${appointmentId}/patient-note`, { note: noteValue })
+      setNoteMessage('Saved')
+      fetchAppointments()
+    } catch (err: unknown) {
+      setNoteMessage(isAxiosError(err) ? (err.response?.data?.error || 'Failed to save note') : 'Failed to save note')
+    } finally {
+      setNoteSaving(false)
     }
   }
 
@@ -120,8 +171,8 @@ export default function PatientAppointments() {
       const { data } = await api.get(`/api/attachments/appointment/${appointmentId}`)
       setAttachments(data.attachments)
       setUploadMessage('File uploaded successfully')
-    } catch (err: any) {
-      setUploadMessage(err.response?.data?.error || 'Upload failed')
+    } catch (err: unknown) {
+      setUploadMessage(isAxiosError(err) ? (err.response?.data?.error || 'Upload failed') : 'Upload failed')
     } finally {
       setUploading(false)
       // Reset file input
@@ -150,6 +201,27 @@ export default function PatientAppointments() {
     return <FileText className="size-4 text-red-500" />
   }
 
+  function formatTimeUntil(dateStr: string, timeStr: string | null): { text: string; soon: boolean } | null {
+    if (!timeStr) return null
+    const target = new Date(`${dateStr}T${timeStr}`)
+    const diffMs = target.getTime() - Date.now()
+    if (diffMs < 0) return null
+    const MIN = 60 * 1000
+    const HOUR = 60 * MIN
+    const DAY = 24 * HOUR
+    if (diffMs <= 30 * MIN) return { text: 'Starting soon', soon: true }
+    if (diffMs < HOUR) {
+      const m = Math.round(diffMs / MIN)
+      return { text: `In ${m} minute${m === 1 ? '' : 's'}`, soon: false }
+    }
+    if (diffMs < DAY) {
+      const h = Math.round(diffMs / HOUR)
+      return { text: `In ${h} hour${h === 1 ? '' : 's'}`, soon: false }
+    }
+    const d = Math.round(diffMs / DAY)
+    return { text: `In ${d} day${d === 1 ? '' : 's'}`, soon: false }
+  }
+
   const filters = ['', 'pending', 'confirmed', 'completed', 'cancelled']
 
   return (
@@ -165,16 +237,18 @@ export default function PatientAppointments() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="bg-muted/50 p-1.5 rounded-xl inline-flex items-center gap-1">
         {filters.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-              filter === f ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              filter === f
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {f || 'All'}
+            {f ? f.charAt(0).toUpperCase() + f.slice(1) : 'All'}
           </button>
         ))}
       </div>
@@ -197,72 +271,155 @@ export default function PatientAppointments() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {appointments.map((apt: any) => (
-            <Card key={apt.id}>
-              <CardContent className="pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+        <div className="space-y-4">
+          {appointments.map((apt) => {
+            const date = new Date(apt.appointmentDate)
+            const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+            const day = date.getDate().toString().padStart(2, '0')
+            const time = apt.startTime?.slice(0, 5)
+            const timeUntil =
+              apt.status === 'pending' || apt.status === 'confirmed'
+                ? formatTimeUntil(apt.appointmentDate, apt.startTime)
+                : null
+
+            return (
+            <Card key={apt.id} className="overflow-hidden">
+              <CardContent className="pt-5 pb-5">
+                <div className="flex flex-col md:flex-row gap-5">
+                  {/* Doctor avatar */}
+                  {apt.doctorAvatar ? (
+                    <img src={apt.doctorAvatar} alt={apt.doctorName ?? undefined} className="size-16 md:size-20 rounded-2xl object-cover shrink-0" />
+                  ) : (
+                    <div className="size-16 md:size-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl md:text-3xl shrink-0">
                       {apt.doctorName?.charAt(0)}
                     </div>
-                    <div>
-                      <p className="font-medium">{apt.doctorName}</p>
-                      <p className="text-sm text-muted-foreground">{apt.doctorSpecialization}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {apt.appointmentDate} at {apt.startTime?.slice(0, 5)} - {apt.endTime?.slice(0, 5)}
-                      </p>
+                  )}
+
+                  {/* Details column */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                        apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {apt.status}
+                      </span>
+                      {apt.googleMeetLink && apt.status === 'confirmed' && (
+                        <span className="text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-primary/10 text-primary">
+                          Video Consultation
+                        </span>
+                      )}
                     </div>
+                    <h3 className="text-lg font-bold mb-0.5">{apt.doctorName}</h3>
+                    <p className="text-sm text-primary font-medium mb-2">{apt.doctorSpecialization}</p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="size-3.5" />
+                        {month} {day}, {date.getFullYear()}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="size-3.5" />
+                        {time} - {apt.endTime?.slice(0, 5)}
+                      </span>
+                      {timeUntil && (
+                        <span className={`flex items-center gap-1.5 ${timeUntil.soon ? 'text-primary font-semibold' : ''}`}>
+                          <Hourglass className="size-3.5" />
+                          {timeUntil.text}
+                        </span>
+                      )}
+                    </div>
+                    {apt.reason && (
+                      <p className="text-sm text-muted-foreground mt-2">Reason: {apt.reason}</p>
+                    )}
+                    {apt.googleMeetLink && apt.status === 'confirmed' && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                        <Video className="size-4 text-primary" />
+                        <span>Video Link Ready</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {apt.status}
-                    </span>
+
+                  {/* Actions column */}
+                  <div className="flex flex-row md:flex-col justify-end gap-2 shrink-0">
                     {apt.googleMeetLink && apt.status === 'confirmed' && (
                       <a href={apt.googleMeetLink} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="outline">
-                          <Video className="size-3 mr-1" />
-                          Join
-                        </Button>
+                        <button className="flex items-center justify-center gap-1.5 bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-semibold text-sm hover:opacity-90 transition-all w-full">
+                          Join Call
+                          <span className="text-xs">→</span>
+                        </button>
                       </a>
                     )}
                     {(apt.status === 'pending' || apt.status === 'confirmed') && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleAttachments(apt.id)}
+                      <button
+                        onClick={() => toggleNote(apt)}
+                        className="flex items-center justify-center gap-1.5 bg-muted text-foreground px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-muted/80 transition-all"
                       >
-                        <Paperclip className="size-3 mr-1" />
-                        Files
-                      </Button>
-                    )}
-                    {apt.status === 'completed' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setReviewingId(reviewingId === apt.id ? null : apt.id)}
-                      >
-                        <Star className="size-3 mr-1" />
-                        Review
-                      </Button>
+                        <MessageSquare className="size-3.5" />
+                        Note
+                      </button>
                     )}
                     {(apt.status === 'pending' || apt.status === 'confirmed') && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => cancelAppointment(apt.id)}
+                      <button
+                        onClick={() => toggleAttachments(apt.id)}
+                        className="flex items-center justify-center gap-1.5 bg-muted text-foreground px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-muted/80 transition-all"
                       >
-                        <X className="size-3 mr-1" />
+                        <Paperclip className="size-3.5" />
+                        Files
+                      </button>
+                    )}
+                    {apt.status === 'completed' && apt.reviewId === null && (
+                      <button
+                        onClick={() => setReviewingId(reviewingId === apt.id ? null : apt.id)}
+                        className="flex items-center justify-center gap-1.5 bg-muted text-foreground px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-muted/80 transition-all"
+                      >
+                        <Star className="size-3.5" />
+                        Review
+                      </button>
+                    )}
+                    {apt.status === 'completed' && apt.reviewId !== null && (
+                      <span className="flex items-center justify-center gap-1.5 bg-yellow-50 text-yellow-700 px-5 py-2.5 rounded-full font-semibold text-sm">
+                        <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                        Reviewed {apt.reviewRating}
+                      </span>
+                    )}
+                    {(apt.status === 'pending' || apt.status === 'confirmed') && (
+                      <button
+                        onClick={() => cancelAppointment(apt.id)}
+                        className="text-destructive font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-destructive/10 transition-all"
+                      >
                         Cancel
-                      </Button>
+                      </button>
                     )}
                   </div>
                 </div>
+
+                {/* Patient Note Section */}
+                {noteEditingId === apt.id && (
+                  <div className="mt-4 pt-4 border-t space-y-3">
+                    <Label className="text-sm font-medium">Note to doctor</Label>
+                    <textarea
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      placeholder="Share any details the doctor should know before the call..."
+                      value={noteValue}
+                      onChange={(e) => setNoteValue(e.target.value)}
+                    />
+                    {noteMessage && (
+                      <p className={`text-xs ${noteMessage === 'Saved' ? 'text-green-600' : 'text-destructive'}`}>
+                        {noteMessage}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveNote(apt.id)} disabled={noteSaving}>
+                        {noteSaving ? 'Saving...' : 'Save Note'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => toggleNote(apt)}>
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Attachments Section */}
                 {attachingId === apt.id && (
@@ -373,7 +530,8 @@ export default function PatientAppointments() {
                 )}
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

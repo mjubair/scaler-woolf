@@ -32,6 +32,7 @@ interface Appointment {
   endTime: string
   status: string
   reason: string | null
+  patientNote: string | null
   doctorNotes: string | null
   googleMeetLink: string | null
   patientName: string
@@ -360,6 +361,25 @@ export default function ConsultationPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Patient Note */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <StickyNote className="size-4" />
+                Patient Note
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appointment?.patientNote ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {appointment.patientNote}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No note from patient.</p>
               )}
             </CardContent>
           </Card>
