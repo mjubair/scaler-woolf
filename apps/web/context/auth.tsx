@@ -4,18 +4,24 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/axios'
 
-interface User {
+export interface User {
   id: number
   name: string
   email: string
+  role: 'patient' | 'doctor' | 'admin'
+  phone?: string
+  avatar?: string
+  isActive?: boolean
+  isVerified?: boolean
   createdAt: string
 }
 
 interface AuthContextValue {
   user: User | null
   token: string | null
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  loading: boolean
+  login: (email: string, password: string) => Promise<User>
+  register: (name: string, email: string, password: string, role: string, phone?: string) => Promise<User>
   logout: () => void
 }
 
@@ -25,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const stored = localStorage.getItem('token')
@@ -37,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('token')
           setToken(null)
         })
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
     }
   }, [])
 
@@ -46,14 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(user)
   }
 
-  async function register(name: string, email: string, password: string) {
-    const { data } = await api.post('/api/auth/register', { name, email, password })
+  async function register(name: string, email: string, password: string, role: string, phone?: string) {
+    const { data } = await api.post('/api/auth/register', { name, email, password, role, phone })
     persist(data.token, data.user)
+    return data.user
   }
 
   async function login(email: string, password: string) {
     const { data } = await api.post('/api/auth/login', { email, password })
     persist(data.token, data.user)
+    return data.user
   }
 
   function logout() {
@@ -64,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

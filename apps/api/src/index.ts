@@ -6,6 +6,16 @@ import { rateLimit } from 'express-rate-limit'
 import { db } from './db'
 import { users } from './db/schema'
 import authRouter from './routes/auth'
+import doctorsRouter from './routes/doctors'
+import appointmentsRouter from './routes/appointments'
+import paymentsRouter from './routes/payments'
+import calendarRouter from './routes/calendar'
+import reviewsRouter from './routes/reviews'
+import prescriptionsRouter from './routes/prescriptions'
+import patientsRouter from './routes/patients'
+import notificationsRouter from './routes/notifications'
+import adminRouter from './routes/admin'
+import attachmentsRouter from './routes/attachments'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -16,10 +26,10 @@ app.use(helmet())
 app.use(cors({ origin: allowedOrigins }))
 app.use(express.json())
 
-// Rate limiting — stricter on auth routes to slow brute-force attempts
+// Rate limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
 })
@@ -35,18 +45,29 @@ const authLimiter = rateLimit({
 app.use(globalLimiter)
 app.use('/api/auth', authLimiter)
 
-// Auth routes
-app.use('/api/auth', authRouter)
-
 // Routes
+app.use('/api/auth', authRouter)
+app.use('/api/doctors', doctorsRouter)
+app.use('/api/appointments', appointmentsRouter)
+app.use('/api/payments', paymentsRouter)
+app.use('/api/calendar', calendarRouter)
+app.use('/api/reviews', reviewsRouter)
+app.use('/api/prescriptions', prescriptionsRouter)
+app.use('/api/patients', patientsRouter)
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/admin', adminRouter)
+app.use('/api/attachments', attachmentsRouter)
+
+// Root
 app.get('/', (_req: Request, res: Response) => {
   res.json({
-    message: 'Welcome to Woolf API',
+    message: 'DocBook API',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
   })
 })
 
+// Health check
 app.get('/health', async (_req: Request, res: Response) => {
   let dbStatus = 'disconnected'
   let dbError = null
@@ -65,17 +86,6 @@ app.get('/health', async (_req: Request, res: Response) => {
     database: {
       status: dbStatus,
       error: dbError,
-    },
-  })
-})
-
-app.get('/api/hello', (_req: Request, res: Response) => {
-  res.json({
-    message: 'Hello from Woolf API!',
-    data: {
-      greeting: 'Welcome to the monorepo',
-      framework: 'Express.js',
-      typescript: true,
     },
   })
 })
