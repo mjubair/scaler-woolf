@@ -602,7 +602,7 @@ export default function DoctorsPage() {
                     className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-sm font-medium bg-primary text-primary-foreground border border-primary transition-colors"
                   >
                     {filters.sortBy
-                      ? { 'rating-desc': 'Rating: High to Low', 'rating-asc': 'Rating: Low to High', 'fee-asc': 'Fee: Low to High', 'fee-desc': 'Fee: High to Low', 'experience-desc': 'Most Experienced', 'experience-asc': 'Least Experienced' }[`${filters.sortBy}-${filters.sortOrder}`] || 'Relevance'
+                      ? ({ 'rating-desc': 'Rating: High to Low', 'rating-asc': 'Rating: Low to High', 'fee-asc': 'Fee: Low to High', 'fee-desc': 'Fee: High to Low', 'experience-desc': 'Most Experienced', 'experience-asc': 'Least Experienced' } as Record<string, string>)[`${filters.sortBy}-${filters.sortOrder}`] || 'Relevance'
                       : 'Relevance'
                     }
                     <ChevronDown className="size-4 text-primary-foreground" />
