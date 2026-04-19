@@ -93,6 +93,11 @@ async function seedMore() {
       })
       .returning()
 
+    if (!doctor) {
+      console.log(`  Skipped doctor profile for ${doc.email} (insert returned no row)`)
+      continue
+    }
+
     // Create availability slots (Mon-Fri 8 slots + Sat 4)
     const slotValues: Array<{ doctorId: number; dayOfWeek: number; startTime: string; endTime: string }> = []
     for (let day = 1; day <= 5; day++) {

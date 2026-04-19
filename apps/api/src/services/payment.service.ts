@@ -43,6 +43,10 @@ export async function createRazorpayOrder(appointmentId: number, patientId: numb
     })
     .returning()
 
+  if (!payment) {
+    throw new Error('Failed to persist payment record')
+  }
+
   return { payment, order }
 }
 
