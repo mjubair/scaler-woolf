@@ -74,7 +74,6 @@ export const doctors = pgTable('doctors', {
   isApproved: boolean('is_approved').notNull().default(false),
   avgRating: decimal('avg_rating', { precision: 3, scale: 2 }).default('0'),
   totalReviews: integer('total_reviews').notNull().default(0),
-  googleRefreshToken: text('google_refresh_token'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -120,6 +119,7 @@ export const appointments = pgTable('appointments', {
   endTime: time('end_time').notNull(),
   status: appointmentStatusEnum('status').notNull().default('pending'),
   reason: text('reason'),
+  patientNote: text('patient_note'),
   doctorNotes: text('doctor_notes'),
   googleMeetLink: varchar('google_meet_link', { length: 500 }),
   googleEventId: varchar('google_event_id', { length: 255 }),
