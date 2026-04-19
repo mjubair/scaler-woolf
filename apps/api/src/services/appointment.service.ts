@@ -1,6 +1,6 @@
 import { eq, and, sql, desc } from 'drizzle-orm'
 import { db } from '../db'
-import { appointments, doctors, users, availabilitySlots } from '../db/schema'
+import { appointments, doctors, users, availabilitySlots, reviews } from '../db/schema'
 
 export async function createAppointment(data: {
   patientId: number
@@ -67,6 +67,7 @@ export async function getAppointmentById(appointmentId: number) {
       endTime: appointments.endTime,
       status: appointments.status,
       reason: appointments.reason,
+      patientNote: appointments.patientNote,
       doctorNotes: appointments.doctorNotes,
       googleMeetLink: appointments.googleMeetLink,
       googleEventId: appointments.googleEventId,
@@ -102,16 +103,21 @@ export async function getPatientAppointments(patientId: number, status?: string)
       endTime: appointments.endTime,
       status: appointments.status,
       reason: appointments.reason,
+      patientNote: appointments.patientNote,
       googleMeetLink: appointments.googleMeetLink,
       createdAt: appointments.createdAt,
       doctorId: appointments.doctorId,
       doctorName: users.name,
       doctorSpecialization: doctors.specialization,
       doctorAvatar: users.avatar,
+      reviewId: reviews.id,
+      reviewRating: reviews.rating,
+      reviewComment: reviews.comment,
     })
     .from(appointments)
     .innerJoin(doctors, eq(appointments.doctorId, doctors.id))
     .innerJoin(users, eq(doctors.userId, users.id))
+    .leftJoin(reviews, eq(reviews.appointmentId, appointments.id))
     .where(and(...conditions))
     .orderBy(desc(appointments.appointmentDate), desc(appointments.startTime))
 }
@@ -171,6 +177,16 @@ export async function updateAppointmentNotes(appointmentId: number, notes: strin
   const [updated] = await db
     .update(appointments)
     .set({ doctorNotes: notes, updatedAt: new Date() })
+    .where(eq(appointments.id, appointmentId))
+    .returning()
+
+  return updated || null
+}
+
+export async function updatePatientNote(appointmentId: number, patientNote: string) {
+  const [updated] = await db
+    .update(appointments)
+    .set({ patientNote, updatedAt: new Date() })
     .where(eq(appointments.id, appointmentId))
     .returning()
 

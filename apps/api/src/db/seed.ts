@@ -60,14 +60,14 @@ async function seed() {
     .returning()
 
   const doctorUserData = [
-    { name: 'Dr. Ananya Iyer', email: 'ananya@docbook.com', phone: '+91-9800000001' },
-    { name: 'Dr. Rajesh Menon', email: 'rajesh@docbook.com', phone: '+91-9800000002' },
-    { name: 'Dr. Fatima Khan', email: 'fatima@docbook.com', phone: '+91-9800000003' },
-    { name: 'Dr. Suresh Nair', email: 'suresh@docbook.com', phone: '+91-9800000004' },
-    { name: 'Dr. Meera Joshi', email: 'meera@docbook.com', phone: '+91-9800000005' },
-    { name: 'Dr. Arjun Rao', email: 'arjun@docbook.com', phone: '+91-9800000006' },
-    { name: 'Dr. Kavitha Pillai', email: 'kavitha@docbook.com', phone: '+91-9800000007' },
-    { name: 'Dr. Mohammed Ali', email: 'mohammed@docbook.com', phone: '+91-9800000008' },
+    { name: 'Dr. Ananya Iyer', email: 'ananya@docbook.com', phone: '+91-9800000001', avatar: '/doctors/female-1.jpg' },
+    { name: 'Dr. Rajesh Menon', email: 'rajesh@docbook.com', phone: '+91-9800000002', avatar: '/doctors/male-1.jpg' },
+    { name: 'Dr. Fatima Khan', email: 'fatima@docbook.com', phone: '+91-9800000003', avatar: '/doctors/female-2.jpg' },
+    { name: 'Dr. Suresh Nair', email: 'suresh@docbook.com', phone: '+91-9800000004', avatar: '/doctors/male-2.jpg' },
+    { name: 'Dr. Meera Joshi', email: 'meera@docbook.com', phone: '+91-9800000005', avatar: '/doctors/female-3.jpg' },
+    { name: 'Dr. Arjun Rao', email: 'arjun@docbook.com', phone: '+91-9800000006', avatar: '/doctors/male-3.jpg' },
+    { name: 'Dr. Kavitha Pillai', email: 'kavitha@docbook.com', phone: '+91-9800000007', avatar: '/doctors/female-4.jpg' },
+    { name: 'Dr. Mohammed Ali', email: 'mohammed@docbook.com', phone: '+91-9800000008', avatar: '/doctors/male-4.jpg' },
   ]
 
   const createdDoctorUsers = await db
