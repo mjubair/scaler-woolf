@@ -8,6 +8,7 @@ import {
   getDoctorAppointments,
   updateAppointmentNotes,
   updateAppointmentStatus,
+  updatePatientNote,
 } from '../services/appointment.service'
 import { deleteCalendarEvent } from '../services/calendar.service'
 import { sendCancellationEmail, sendConsultationCompletedEmail } from '../services/email.service'
@@ -212,6 +213,45 @@ router.patch('/:id/notes', requireAuth, requireRole('doctor'), async (req: Reque
     res.status(500).json({ error: 'Failed to update notes' })
   }
 })
+
+// PATCH /api/appointments/:id/patient-note — patient saves a pre-consultation note
+router.patch(
+  '/:id/patient-note',
+  requireAuth,
+  requireRole('patient'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const appointmentId = Number(req.params.id)
+      const { note } = req.body
+
+      if (typeof note !== 'string') {
+        res.status(400).json({ error: 'note field is required' })
+        return
+      }
+
+      const appointment = await getAppointmentById(appointmentId)
+      if (!appointment) {
+        res.status(404).json({ error: 'Appointment not found' })
+        return
+      }
+
+      if (appointment.patientId !== req.user!.userId) {
+        res.status(403).json({ error: 'You can only update notes on your own appointments' })
+        return
+      }
+
+      if (appointment.status !== 'pending' && appointment.status !== 'confirmed') {
+        res.status(400).json({ error: 'Cannot edit note for completed or cancelled appointments' })
+        return
+      }
+
+      const updated = await updatePatientNote(appointmentId, note)
+      res.json({ appointment: updated })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update patient note' })
+    }
+  },
+)
 
 // PATCH /api/appointments/:id/cancel — cancel appointment
 router.patch('/:id/cancel', requireAuth, async (req: Request, res: Response): Promise<void> => {
