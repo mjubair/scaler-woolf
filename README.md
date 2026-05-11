@@ -2,8 +2,11 @@
 
 A production-ready fullstack healthcare booking platform built as a Master of Science in Computer Science capstone project at Scaler Neovarsity – Woolf. Patients can discover verified doctors, book appointments, pay securely via Razorpay, and attend consultations over Google Meet. Doctors manage availability, conduct consultations, and issue digital prescriptions. Admins approve doctors and oversee platform activity.
 
+Live Web: https://scaler-woolf-web.vercel.app  
 Live API: https://woolf-api.onrender.com  
 Repository: https://github.com/mjubair/scaler-woolf
+
+> **For evaluators**: see [EVALUATOR_GUIDE.md](./EVALUATOR_GUIDE.md) for demo credentials, the suggested demo path, and how to register with your own email to receive appointment notifications.
 
 ## What's inside?
 
@@ -111,7 +114,7 @@ pnpm lint --filter=...web   # Lint web and its dependencies
 |---|---|---|
 | API | Render | https://woolf-api.onrender.com |
 | Database | Render PostgreSQL | Internal (via `DATABASE_URL`) |
-| Web | Vercel | See Vercel dashboard |
+| Web | Vercel | https://scaler-woolf-web.vercel.app |
 
 Render runs migrations automatically on every deploy via `pnpm --filter=api db:migrate`. The `ALLOWED_ORIGINS` env var on Render must include the Vercel frontend URL for CORS to work.
 
