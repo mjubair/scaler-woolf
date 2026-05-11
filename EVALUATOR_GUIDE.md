@@ -22,6 +22,18 @@ All seeded accounts share the password **`password123`**.
 
 The seeded accounts use placeholder email addresses, so booking-related emails won't reach you. To experience the **email notification flow** end-to-end, sign up at `/register` using a real email address you control. Pick the **Patient** or **Doctor** role; you'll then receive confirmation, reminder, and prescription emails for any appointments tied to that account.
 
+## Test payment cards (Razorpay)
+
+Payments run on Razorpay's **test mode**, so no real money moves. When you reach the payment step in the booking flow, use any of the cards below. For all cards: enter **any random 3-digit CVV** (4-digit for Amex) and **any future expiry date**.
+
+| Network | Card Number |
+|---|---|
+| Visa | `4100 2800 0000 1007` |
+| Mastercard | `5500 6700 0000 1002` |
+| RuPay | `6527 6589 0000 1005` |
+| Diners | `3608 280009 1007` |
+| Amex | `3402 560004 01007` |
+
 ## Run locally
 
 ```bash
