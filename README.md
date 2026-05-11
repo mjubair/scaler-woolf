@@ -2,7 +2,7 @@
 
 A production-ready fullstack healthcare booking platform built as a Master of Science in Computer Science capstone project at Scaler Neovarsity – Woolf. Patients can discover verified doctors, book appointments, pay securely via Razorpay, and attend consultations over Google Meet. Doctors manage availability, conduct consultations, and issue digital prescriptions. Admins approve doctors and oversee platform activity.
 
-Live Web: https://scaler-woolf-web.vercel.app  
+Live Web: https://scaler-woolf.vercel.app  
 Live API: https://woolf-api.onrender.com  
 Repository: https://github.com/mjubair/scaler-woolf
 
